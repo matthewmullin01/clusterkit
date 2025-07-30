@@ -1,4 +1,4 @@
-use magnus::{define_module, function, prelude::*, Error, Value};
+use magnus::{function, prelude::*, Error, Value};
 
 pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     let utils_module = parent.define_module("Utils")?;
@@ -16,7 +16,7 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     Ok(())
 }
 
-fn estimate_intrinsic_dimension(data: Value, k_neighbors: usize) -> Result<f64, Error> {
+fn estimate_intrinsic_dimension(_data: Value, _k_neighbors: usize) -> Result<f64, Error> {
     // TODO: Implement using annembed
     Err(Error::new(
         magnus::exception::not_imp_error(),
@@ -24,7 +24,7 @@ fn estimate_intrinsic_dimension(data: Value, k_neighbors: usize) -> Result<f64, 
     ))
 }
 
-fn estimate_hubness(data: Value) -> Result<Value, Error> {
+fn estimate_hubness(_data: Value) -> Result<Value, Error> {
     // TODO: Implement using annembed
     Err(Error::new(
         magnus::exception::not_imp_error(),

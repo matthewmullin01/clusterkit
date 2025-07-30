@@ -1,4 +1,4 @@
-use magnus::{define_module, function, prelude::*, Error, Value};
+use magnus::{function, prelude::*, Error, Value};
 
 pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     let svd_module = parent.define_module("SVD")?;
@@ -11,7 +11,7 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     Ok(())
 }
 
-fn randomized_svd(matrix: Value, k: usize, n_iter: usize) -> Result<Value, Error> {
+fn randomized_svd(_matrix: Value, _k: usize, _n_iter: usize) -> Result<Value, Error> {
     // TODO: Implement randomized SVD using annembed
     Err(Error::new(
         magnus::exception::not_imp_error(),

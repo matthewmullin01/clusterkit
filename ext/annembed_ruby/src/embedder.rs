@@ -16,6 +16,7 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
 struct RustUMAP {
     n_components: usize,
     n_neighbors: usize,
+    #[allow(dead_code)]
     random_seed: Option<u64>,
 }
 
@@ -134,7 +135,8 @@ impl RustUMAP {
         
         // Insert data into HNSW
         let data_with_id: Vec<(&Vec<f32>, usize)> = data_f32.iter()
-            .zip(0..data_f32.len())
+            .enumerate()
+            .map(|(i, v)| (v, i))
             .collect();
         hnsw.parallel_insert(&data_with_id);
         
