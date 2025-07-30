@@ -1,0 +1,56 @@
+# frozen_string_literal: true
+
+require_relative "annembed/version"
+require_relative "annembed/annembed_ruby"
+
+# Main module for annembed-ruby gem
+# Provides high-performance dimensionality reduction algorithms
+module Annembed
+  class Error < StandardError; end
+
+  # Available embedding methods
+  METHODS = %i[umap tsne largevis diffusion].freeze
+
+  # Autoload classes for better performance
+  autoload :Embedder, "annembed/embedder"
+  autoload :Config, "annembed/config"
+  autoload :SVD, "annembed/svd"
+  autoload :Utils, "annembed/utils"
+  autoload :Preprocessing, "annembed/preprocessing"
+
+  class << self
+    # Quick UMAP embedding
+    # @param data [Array, Numo::NArray] Input data
+    # @param n_components [Integer] Number of dimensions in output
+    # @return [Numo::NArray] Embedded data
+    def umap(data, n_components: 2, **options)
+      embedder = Embedder.new(method: :umap, n_components: n_components, **options)
+      embedder.fit_transform(data)
+    end
+
+    # Quick t-SNE embedding
+    # @param data [Array, Numo::NArray] Input data
+    # @param n_components [Integer] Number of dimensions in output
+    # @return [Numo::NArray] Embedded data
+    def tsne(data, n_components: 2, **options)
+      embedder = Embedder.new(method: :tsne, n_components: n_components, **options)
+      embedder.fit_transform(data)
+    end
+
+    # Estimate intrinsic dimension of data
+    # @param data [Array, Numo::NArray] Input data
+    # @param k [Integer] Number of neighbors to consider
+    # @return [Float] Estimated intrinsic dimension
+    def estimate_dimension(data, k: 10)
+      Utils.estimate_intrinsic_dimension(data, k_neighbors: k)
+    end
+
+    # Perform randomized SVD
+    # @param matrix [Array, Numo::NArray] Input matrix
+    # @param k [Integer] Number of components
+    # @return [Array<Numo::NArray>] U, S, V matrices
+    def svd(matrix, k, n_iter: 2)
+      SVD.randomized_svd(matrix, k, n_iter: n_iter)
+    end
+  end
+end

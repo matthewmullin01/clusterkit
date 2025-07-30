@@ -1,0 +1,20 @@
+[package]
+name = "annembed_ruby"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+magnus = { version = "0.6", features = ["embed"] }
+annembed = { git = "https://github.com/jean-pierreBoth/annembed" }
+ndarray = "0.15"
+num-traits = "0.2"
+rayon = "1.7"
+
+[features]
+default = ["openblas-static"]
+openblas-static = ["annembed/openblas-static"]
+openblas-system = ["annembed/openblas-system"]
+intel-mkl-static = ["annembed/intel-mkl-static"]

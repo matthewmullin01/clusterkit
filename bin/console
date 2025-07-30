@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "annembed"
+
+# You can add fixtures and/or initialization code here to make experimenting
+# with your gem easier. You can also use a different console, if you like.
+
+# Load test data generators for convenience
+require_relative "../test/test_helper"
+
+# Print helpful information
+puts "annembed-ruby console"
+puts "=" * 40
+puts "Available methods:"
+puts "  - Annembed.umap(data)"
+puts "  - Annembed.tsne(data)"
+puts "  - Annembed.estimate_dimension(data)"
+puts "  - Annembed.svd(matrix, k)"
+puts ""
+puts "Test data generators:"
+puts "  - TestData.generate_clusters"
+puts "  - TestData.generate_swiss_roll"
+puts "=" * 40
+puts ""
+
+require "irb"
+IRB.start(__FILE__)
