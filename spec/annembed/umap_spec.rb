@@ -48,7 +48,7 @@ RSpec.describe Annembed::UMAP do
       it "transforms a reasonable dataset" do
         # Use 15 points to ensure HNSW works properly
         data = generate_test_data(15, 5)
-        result = umap.fit_transform(data)
+        result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
         
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(15)
@@ -58,7 +58,7 @@ RSpec.describe Annembed::UMAP do
 
       it "reduces dimensions from 10D to 2D" do
         data = generate_test_data(30, 10)
-        result = umap.fit_transform(data)
+        result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
         
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(30)
@@ -71,7 +71,7 @@ RSpec.describe Annembed::UMAP do
         # Normalize to 0-1 range
         data = data.map { |row| row.map { |x| x / 5.0 } }
         
-        result = umap.fit_transform(data)
+        result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
         
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(15)
@@ -123,7 +123,7 @@ RSpec.describe Annembed::UMAP do
       cluster3 = 10.times.map { [0.5 + rand * 0.1, 0.0 + rand * 0.1, 1.0 + rand * 0.1] }
       
       data = cluster1 + cluster2 + cluster3
-      result = umap.fit_transform(data)
+      result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
       
       # Check that we got the right number of points back
       expect(result.length).to eq(30)
