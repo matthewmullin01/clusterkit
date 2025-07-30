@@ -6,8 +6,7 @@ gemspec
 group :development do
   gem "rake", "~> 13.0"
   gem "rake-compiler", "~> 1.2"
-  gem "minitest", "~> 5.0"
-  gem "minitest-reporters", "~> 1.6"
+  gem "rspec", "~> 3.0"
   gem "yard", "~> 0.9"
 end
 

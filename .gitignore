@@ -59,9 +59,9 @@ Cargo.lock
 **/*.rs.bk
 
 # Magnus/rake-compiler artifacts
-/lib/annembed_ruby.bundle
-/lib/annembed_ruby.so
-/lib/annembed_ruby.dll
+**.bundle
+**.so
+**.dll
 *.o
 *.def
 *.exp

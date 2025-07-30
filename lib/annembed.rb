@@ -11,7 +11,13 @@ module Annembed
   # Available embedding methods
   METHODS = %i[umap tsne largevis diffusion].freeze
 
+  # Core error classes
+  class DimensionError < Error; end
+  class ConvergenceError < Error; end
+  class InvalidParameterError < Error; end
+
   # Autoload classes for better performance
+  autoload :UMAP, "annembed/umap"
   autoload :Embedder, "annembed/embedder"
   autoload :Config, "annembed/config"
   autoload :SVD, "annembed/svd"

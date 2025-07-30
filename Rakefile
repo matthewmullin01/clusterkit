@@ -1,13 +1,9 @@
 require "bundler/gem_tasks"
-require "rake/testtask"
 require "rake/extensiontask"
+require "rspec/core/rake_task"
 
-Rake::TestTask.new(:test) do |t|
-  t.libs << "test"
-  t.libs << "lib"
-  t.test_files = FileList["test/**/test_*.rb"]
-  t.warning = false
-end
+# RSpec test task
+RSpec::Core::RakeTask.new(:spec)
 
 # Define the Rust extension
 spec = Gem::Specification.load("annembed-ruby.gemspec")
@@ -18,7 +14,7 @@ Rake::ExtensionTask.new("annembed_ruby", spec) do |ext|
   ext.cross_platform = %w[x86-mingw32 x64-mingw32 x86-linux x86_64-linux x86_64-darwin arm64-darwin]
 end
 
-task default: [:compile, :test]
+task default: [:compile, :spec]
 
 # Documentation task
 begin
@@ -75,4 +71,4 @@ end
 
 # CI task that runs all checks
 desc "Run all CI checks"
-task ci: ["rust:fmt", "rust:clippy", "compile", "test"]
+task ci: ["rust:fmt", "rust:clippy", "compile", "spec"]

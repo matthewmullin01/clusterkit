@@ -1,8 +1,11 @@
-use magnus::{define_module, function, prelude::*, Error};
+use magnus::{define_module, Error};
 
 mod embedder;
 mod svd;
 mod utils;
+
+#[cfg(test)]
+mod tests;
 
 #[magnus::init]
 fn init() -> Result<(), Error> {
