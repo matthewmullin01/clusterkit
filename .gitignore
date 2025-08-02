@@ -84,3 +84,4 @@ Thumbs.db
 /test/fixtures/tmp/
 /test/reports/
 /test/tmp/
+.rspec_status

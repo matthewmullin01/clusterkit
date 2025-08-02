@@ -1,7 +1,7 @@
 require_relative "lib/annembed/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "annembed"
+  spec.name = "annembed-ruby"
   spec.version = Annembed::VERSION
   spec.authors = ["Your Name"]
   spec.email = ["your.email@example.com"]
