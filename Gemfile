@@ -1,6 +1,6 @@
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in annembed-ruby.gemspec
+# Specify your gem's dependencies in annembed.gemspec
 gemspec
 
 # Test-only dependencies

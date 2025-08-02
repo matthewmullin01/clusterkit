@@ -1,4 +1,4 @@
-# annembed-ruby
+# annembed
 
 High-performance dimensionality reduction for Ruby, powered by the [annembed](https://github.com/jean-pierreBoth/annembed) Rust crate.
 
@@ -14,7 +14,7 @@ High-performance dimensionality reduction for Ruby, powered by the [annembed](ht
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'annembed-ruby'
+gem 'annembed'
 ```
 
 And then execute:
@@ -23,7 +23,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install annembed-ruby
+    $ gem install annembed
 
 ### Prerequisites
 

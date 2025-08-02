@@ -11,7 +11,7 @@ require "annembed"
 require_relative "../test/test_helper"
 
 # Print helpful information
-puts "annembed-ruby console"
+puts "annembed console"
 puts "=" * 40
 puts "Available methods:"
 puts "  - Annembed.umap(data)"
