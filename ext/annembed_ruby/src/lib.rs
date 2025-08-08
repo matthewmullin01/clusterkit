@@ -9,7 +9,7 @@ mod tests;
 
 #[magnus::init]
 fn init() -> Result<(), Error> {
-    let module = define_module("Annembed")?;
+    let module = define_module("AnnEmbed")?;
     
     // Initialize submodules
     embedder::init(&module)?;

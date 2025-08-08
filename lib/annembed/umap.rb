@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Annembed
+module AnnEmbed
   class UMAP
     def initialize(n_components: 2, n_neighbors: 15, random_seed: nil)
       @rust_umap = RustUMAP.new(

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Annembed
+module AnnEmbed
   # Configuration class for embedding algorithms
   class Config
     # HNSW parameters

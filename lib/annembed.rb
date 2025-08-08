@@ -5,7 +5,7 @@ require_relative "annembed/annembed_ruby"
 
 # Main module for annembed-ruby gem
 # Provides high-performance dimensionality reduction algorithms
-module Annembed
+module AnnEmbed
   class Error < StandardError; end
 
   # Available embedding methods

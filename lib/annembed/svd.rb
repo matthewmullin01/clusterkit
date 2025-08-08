@@ -2,7 +2,7 @@
 
 require "numo/narray"
 
-module Annembed
+module AnnEmbed
   # Module for SVD operations
   module SVD
     class << self

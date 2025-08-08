@@ -2,7 +2,7 @@
 
 require "numo/narray"
 
-module Annembed
+module AnnEmbed
   # Main class for performing dimensionality reduction
   class Embedder
     attr_reader :method, :n_components, :config

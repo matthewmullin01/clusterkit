@@ -41,10 +41,10 @@ require 'numo/narray'
 data = Numo::DFloat.new(1000, 50).rand_norm
 
 # Perform UMAP embedding
-embedding = Annembed.umap(data, n_components: 2, n_neighbors: 15)
+embedding = AnnEmbed.umap(data, n_components: 2, n_neighbors: 15)
 
 # Or use the full API
-embedder = Annembed::Embedder.new(
+embedder = AnnEmbed::Embedder.new(
   method: :umap,
   n_components: 2,
   n_neighbors: 15,
@@ -57,7 +57,7 @@ embedding = embedder.fit_transform(data)
 embedder.save("model.ann")
 
 # Load and transform new data
-embedder = Annembed::Embedder.load("model.ann")
+embedder = AnnEmbed::Embedder.load("model.ann")
 new_embedding = embedder.transform(new_data)
 ```
 
@@ -65,7 +65,7 @@ new_embedding = embedder.transform(new_data)
 
 ### UMAP (Uniform Manifold Approximation and Projection)
 ```ruby
-Annembed.umap(data, 
+AnnEmbed.umap(data, 
   n_components: 2,
   n_neighbors: 15,
   min_dist: 0.1,
@@ -75,7 +75,7 @@ Annembed.umap(data,
 
 ### t-SNE (t-Distributed Stochastic Neighbor Embedding)
 ```ruby
-Annembed.tsne(data,
+AnnEmbed.tsne(data,
   n_components: 2,
   perplexity: 30.0,
   learning_rate: 200.0
@@ -84,13 +84,13 @@ Annembed.tsne(data,
 
 ### LargeVis
 ```ruby
-embedder = Annembed::Embedder.new(method: :largevis)
+embedder = AnnEmbed::Embedder.new(method: :largevis)
 embedding = embedder.fit_transform(data)
 ```
 
 ### Diffusion Maps
 ```ruby
-embedder = Annembed::Embedder.new(method: :diffusion)
+embedder = AnnEmbed::Embedder.new(method: :diffusion)
 embedding = embedder.fit_transform(data)
 ```
 
@@ -98,13 +98,13 @@ embedding = embedder.fit_transform(data)
 
 ### Estimate Intrinsic Dimension
 ```ruby
-dimension = Annembed.estimate_dimension(data, k: 10)
+dimension = AnnEmbed.estimate_dimension(data, k: 10)
 puts "Estimated intrinsic dimension: #{dimension}"
 ```
 
 ### Randomized SVD
 ```ruby
-u, s, v = Annembed.svd(matrix, k: 50)
+u, s, v = AnnEmbed.svd(matrix, k: 50)
 ```
 
 ## Performance Tips

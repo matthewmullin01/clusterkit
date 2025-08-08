@@ -37,7 +37,7 @@ end
 puts "\n1. Quick UMAP embedding:"
 begin
   data = generate_sample_data
-  embedding = Annembed.umap(data, n_components: 2, n_neighbors: 15)
+  embedding = AnnEmbed.umap(data, n_components: 2, n_neighbors: 15)
   puts "   Input shape: #{data.shape}"
   puts "   Output shape: #{embedding.shape}"
 rescue => e
@@ -47,7 +47,7 @@ end
 # Example 2: Using the Embedder class with configuration
 puts "\n2. Configured t-SNE embedding:"
 begin
-  embedder = Annembed::Embedder.new(
+  embedder = AnnEmbed::Embedder.new(
     method: :tsne,
     n_components: 2,
     perplexity: 30,
@@ -64,7 +64,7 @@ end
 # Example 3: Estimate intrinsic dimension
 puts "\n3. Intrinsic dimension estimation:"
 begin
-  dimension = Annembed.estimate_dimension(data, k: 10)
+  dimension = AnnEmbed.estimate_dimension(data, k: 10)
   puts "   Estimated dimension: #{dimension}"
 rescue => e
   puts "   Not implemented yet: #{e.message}"
@@ -74,7 +74,7 @@ end
 puts "\n4. Data preprocessing:"
 begin
   # Normalize data before embedding
-  normalized = Annembed::Preprocessing.normalize(data, method: :standard)
+  normalized = AnnEmbed::Preprocessing.normalize(data, method: :standard)
   puts "   Normalized data shape: #{normalized.shape}"
   puts "   Mean: #{normalized.mean.round(4)}"
   puts "   Std: #{normalized.stddev.round(4)}"
@@ -86,7 +86,7 @@ end
 puts "\n5. Model persistence:"
 begin
   # Fit a model
-  embedder = Annembed::Embedder.new(method: :umap)
+  embedder = AnnEmbed::Embedder.new(method: :umap)
   embedder.fit(data)
   
   # Save it
@@ -94,7 +94,7 @@ begin
   puts "   Model saved to my_model.ann"
   
   # Load it back
-  loaded = Annembed::Embedder.load("my_model.ann")
+  loaded = AnnEmbed::Embedder.load("my_model.ann")
   puts "   Model loaded successfully"
 rescue => e
   puts "   Not implemented yet: #{e.message}"

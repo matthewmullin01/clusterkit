@@ -2,7 +2,7 @@
 
 require "numo/narray"
 
-module Annembed
+module AnnEmbed
   # Data preprocessing utilities
   module Preprocessing
     class << self

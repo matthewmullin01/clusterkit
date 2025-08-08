@@ -2,7 +2,7 @@
 
 require "numo/narray"
 
-module Annembed
+module AnnEmbed
   # Utility functions for data analysis
   module Utils
     class << self
