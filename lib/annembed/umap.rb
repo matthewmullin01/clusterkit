@@ -1,18 +1,56 @@
 # frozen_string_literal: true
 
+require 'fileutils'
+
 module AnnEmbed
   class UMAP
     def initialize(n_components: 2, n_neighbors: 15, random_seed: nil)
+      @n_components = n_components
+      @n_neighbors = n_neighbors
       @rust_umap = RustUMAP.new(
         n_components: n_components,
         n_neighbors: n_neighbors,
         random_seed: random_seed
       )
+      @last_embeddings = nil
+      @last_original_data = nil
     end
     
+    # Load embeddings from a file
+    def self.load_embeddings(path)
+      raise ArgumentError, "File not found: #{path}" unless File.exist?(path)
+      RustUMAP.load_embeddings(path)
+    end
+    
+    # Save embeddings to a file 
+    def self.save_embeddings(path, embeddings, original_data, options = {})
+      # Ensure directory exists
+      dir = File.dirname(path)
+      FileUtils.mkdir_p(dir) unless dir == '.' || dir == '/'
+      
+      RustUMAP.save_embeddings(path, embeddings, original_data, options)
+    end
+    
+    # Fit the model and transform the data in one step
     def fit_transform(data)
       validate_input(data)
-      @rust_umap.fit_transform(data)
+      embeddings = @rust_umap.fit_transform(data)
+      
+      # Store for potential saving
+      @last_embeddings = embeddings
+      @last_original_data = data
+      
+      embeddings
+    end
+    
+    # Save the last computed embeddings to a file
+    def save_embeddings(path)
+      raise RuntimeError, "No embeddings to save. Run fit_transform first." unless @last_embeddings
+      
+      self.class.save_embeddings(path, @last_embeddings, @last_original_data, {
+        n_components: @n_components,
+        n_neighbors: @n_neighbors
+      })
     end
     
     private

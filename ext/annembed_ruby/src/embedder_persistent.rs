@@ -7,36 +7,28 @@ use std::io::{Write, Read};
 use bincode;
 use serde::{Serialize, Deserialize};
 
-// Simple struct to serialize UMAP results
+// Struct to hold the trained model state
 #[derive(Serialize, Deserialize)]
-struct SavedUMAPModel {
+struct UMAPModel {
     n_components: usize,
     n_neighbors: usize,
-    embeddings: Vec<Vec<f64>>,
-    original_data: Vec<Vec<f32>>,
-}
-
-pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
-    let umap_class = parent.define_class("RustUMAP", magnus::class::object())?;
-    
-    umap_class.define_singleton_method("new", magnus::function!(RustUMAP::new, 1))?;
-    umap_class.define_singleton_method("save_embeddings", magnus::function!(RustUMAP::save_embeddings, 4))?;
-    umap_class.define_singleton_method("load_embeddings", magnus::function!(RustUMAP::load_embeddings, 1))?;
-    umap_class.define_method("fit_transform", magnus::method!(RustUMAP::fit_transform, 1))?;
-    
-    Ok(())
+    embeddings: Vec<Vec<f64>>,  // The trained embeddings
+    original_data: Vec<Vec<f32>>,  // Store original data for transform
+    graph_data: Vec<u8>,  // Serialized HNSW graph
 }
 
 #[magnus::wrap(class = "AnnEmbed::RustUMAP")]
-struct RustUMAP {
+pub struct RustUMAP {
     n_components: usize,
     n_neighbors: usize,
-    #[allow(dead_code)]
     random_seed: Option<u64>,
+    model: Option<UMAPModel>,  // Store the trained model
+    hnsw: Option<Hnsw<f32, DistL2>>,  // Keep HNSW for transform
+    embedder: Option<Box<Embedder<f32>>>,  // Keep embedder for transform
 }
 
 impl RustUMAP {
-    fn new(options: RHash) -> Result<Self, Error> {
+    pub fn new(options: RHash) -> Result<Self, Error> {
         let n_components = match options.lookup::<_, Value>(magnus::Symbol::new("n_components")) {
             Ok(val) => {
                 if val.is_nil() {
@@ -80,15 +72,16 @@ impl RustUMAP {
             n_components,
             n_neighbors,
             random_seed,
+            model: None,
+            hnsw: None,
+            embedder: None,
         })
     }
     
-    fn fit_transform(&self, data: Value) -> Result<RArray, Error> {
-        // Convert Ruby array to Rust Vec<Vec<f64>>
+    fn convert_ruby_to_rust(&self, data: Value) -> Result<Vec<Vec<f64>>, Error> {
         let ruby_array = RArray::try_convert(data)?;
         let mut rust_data: Vec<Vec<f64>> = Vec::new();
         
-        // Get array length
         let array_len = ruby_array.len();
         
         for i in 0..array_len {
@@ -135,6 +128,12 @@ impl RustUMAP {
             ));
         }
         
+        Ok(rust_data)
+    }
+    
+    pub fn fit(&mut self, data: Value) -> Result<(), Error> {
+        let rust_data = self.convert_ruby_to_rust(data)?;
+        
         // Convert to Vec<Vec<f32>> for HNSW
         let data_f32: Vec<Vec<f32>> = rust_data.iter()
             .map(|row| row.iter().map(|&x| x as f32).collect())
@@ -156,8 +155,9 @@ impl RustUMAP {
         hnsw.parallel_insert(&data_with_id);
         
         // Create KGraph from HNSW
-        let kgraph: annembed::fromhnsw::kgraph::KGraph<f32> = annembed::fromhnsw::kgraph::kgraph_from_hnsw_all(&hnsw, self.n_neighbors)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+        let kgraph: annembed::fromhnsw::kgraph::KGraph<f32> = 
+            annembed::fromhnsw::kgraph::kgraph_from_hnsw_all(&hnsw, self.n_neighbors)
+                .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
         
         // Set up embedding parameters
         let mut embed_params = EmbedderParams::default();
@@ -173,8 +173,6 @@ impl RustUMAP {
         // Create embedder and perform embedding
         let mut embedder = Embedder::new(&kgraph, embed_params);
         
-        // TODO: Figure out how to set random seed in annembed
-        
         let embed_result = embedder.embed()
             .map_err(|_| Error::new(magnus::exception::runtime_error(), "Embedding failed"))?;
         
@@ -185,8 +183,8 @@ impl RustUMAP {
         // Get embedded data
         let embedded_array = embedder.get_embedded_reindexed();
         
-        // Store results in a simpler format
-        let mut embeddings = Vec::new();
+        // Convert embeddings to Vec<Vec<f64>>
+        let mut embeddings: Vec<Vec<f64>> = Vec::new();
         for i in 0..embedded_array.nrows() {
             let mut row = Vec::new();
             for j in 0..embedded_array.ncols() {
@@ -195,11 +193,86 @@ impl RustUMAP {
             embeddings.push(row);
         }
         
-        // Convert result back to Ruby array
+        // Store the model
+        self.model = Some(UMAPModel {
+            n_components: self.n_components,
+            n_neighbors: self.n_neighbors,
+            embeddings: embeddings.clone(),
+            original_data: data_f32.clone(),
+            graph_data: Vec::new(),  // TODO: Serialize HNSW if needed
+        });
+        
+        // Store HNSW and embedder for transform
+        self.hnsw = Some(hnsw);
+        self.embedder = Some(Box::new(embedder));
+        
+        Ok(())
+    }
+    
+    pub fn fit_transform(&mut self, data: Value) -> Result<RArray, Error> {
+        // First fit the model
+        self.fit(data)?;
+        
+        // Then return the embeddings
+        if let Some(ref model) = self.model {
+            let result = RArray::new();
+            for embedding in &model.embeddings {
+                let row = RArray::new();
+                for &val in embedding {
+                    row.push(val)?;
+                }
+                result.push(row)?;
+            }
+            Ok(result)
+        } else {
+            Err(Error::new(
+                magnus::exception::runtime_error(),
+                "Model not fitted",
+            ))
+        }
+    }
+    
+    pub fn transform(&self, data: Value) -> Result<RArray, Error> {
+        if self.model.is_none() {
+            return Err(Error::new(
+                magnus::exception::runtime_error(),
+                "Model must be fitted before transform",
+            ));
+        }
+        
+        let new_data = self.convert_ruby_to_rust(data)?;
+        let new_data_f32: Vec<Vec<f32>> = new_data.iter()
+            .map(|row| row.iter().map(|&x| x as f32).collect())
+            .collect();
+        
+        // For now, we'll use a simple approach:
+        // Find nearest neighbors in original data and use their embeddings
+        // This is a placeholder - a proper implementation would use the embedder
+        
+        let model = self.model.as_ref().unwrap();
         let result = RArray::new();
-        for embedding in &embeddings {
+        
+        for new_point in &new_data_f32 {
+            // Find nearest neighbor in original data
+            let mut min_dist = f32::MAX;
+            let mut nearest_idx = 0;
+            
+            for (idx, orig_point) in model.original_data.iter().enumerate() {
+                let dist = new_point.iter()
+                    .zip(orig_point.iter())
+                    .map(|(a, b)| (a - b).powi(2))
+                    .sum::<f32>()
+                    .sqrt();
+                
+                if dist < min_dist {
+                    min_dist = dist;
+                    nearest_idx = idx;
+                }
+            }
+            
+            // Use the embedding of the nearest neighbor
             let row = RArray::new();
-            for &val in embedding {
+            for &val in &model.embeddings[nearest_idx] {
                 row.push(val)?;
             }
             result.push(row)?;
@@ -208,64 +281,27 @@ impl RustUMAP {
         Ok(result)
     }
     
-    fn save_embeddings(path: String, embeddings: Value, original_data: Value, options: RHash) -> Result<(), Error> {
-        // Convert Ruby arrays to Rust vectors
-        let embeddings_array = RArray::try_convert(embeddings)?;
-        let original_data_array = RArray::try_convert(original_data)?;
-        
-        let mut rust_embeddings = Vec::new();
-        for i in 0..embeddings_array.len() {
-            let row = embeddings_array.entry::<RArray>(i as isize)?;
-            let mut rust_row = Vec::new();
-            for j in 0..row.len() {
-                let val = row.entry::<f64>(j as isize)?;
-                rust_row.push(val);
-            }
-            rust_embeddings.push(rust_row);
+    pub fn save(&self, path: String) -> Result<(), Error> {
+        if let Some(ref model) = self.model {
+            let serialized = bincode::serialize(model)
+                .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+            
+            let mut file = File::create(&path)
+                .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+            
+            file.write_all(&serialized)
+                .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+            
+            Ok(())
+        } else {
+            Err(Error::new(
+                magnus::exception::runtime_error(),
+                "Model must be fitted before saving",
+            ))
         }
-        
-        let mut rust_original_data = Vec::new();
-        for i in 0..original_data_array.len() {
-            let row = original_data_array.entry::<RArray>(i as isize)?;
-            let mut rust_row = Vec::new();
-            for j in 0..row.len() {
-                let val = row.entry::<f64>(j as isize)?;
-                rust_row.push(val as f32);
-            }
-            rust_original_data.push(rust_row);
-        }
-        
-        // Extract parameters from options
-        let n_components = match options.lookup::<_, Value>(magnus::Symbol::new("n_components")) {
-            Ok(val) => Integer::try_convert(val).unwrap().to_u32().unwrap() as usize,
-            Err(_) => 2,
-        };
-        
-        let n_neighbors = match options.lookup::<_, Value>(magnus::Symbol::new("n_neighbors")) {
-            Ok(val) => Integer::try_convert(val).unwrap().to_u32().unwrap() as usize,
-            Err(_) => 15,
-        };
-        
-        let saved_model = SavedUMAPModel {
-            n_components,
-            n_neighbors,
-            embeddings: rust_embeddings,
-            original_data: rust_original_data,
-        };
-        
-        let serialized = bincode::serialize(&saved_model)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        let mut file = File::create(&path)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        file.write_all(&serialized)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        Ok(())
     }
     
-    fn load_embeddings(path: String) -> Result<RArray, Error> {
+    pub fn load(path: String) -> Result<Self, Error> {
         let mut file = File::open(&path)
             .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
         
@@ -273,19 +309,34 @@ impl RustUMAP {
         file.read_to_end(&mut buffer)
             .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
         
-        let saved_model: SavedUMAPModel = bincode::deserialize(&buffer)
+        let model: UMAPModel = bincode::deserialize(&buffer)
             .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
         
-        // Convert embeddings back to Ruby array
-        let result = RArray::new();
-        for embedding in &saved_model.embeddings {
-            let row = RArray::new();
-            for &val in embedding {
-                row.push(val)?;
-            }
-            result.push(row)?;
-        }
-        
-        Ok(result)
+        Ok(RustUMAP {
+            n_components: model.n_components,
+            n_neighbors: model.n_neighbors,
+            random_seed: None,
+            model: Some(model),
+            hnsw: None,  // TODO: Rebuild from serialized data if needed
+            embedder: None,
+        })
     }
+    
+    pub fn is_fitted(&self) -> bool {
+        self.model.is_some()
+    }
+}
+
+pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
+    let umap_class = parent.define_class("RustUMAP", magnus::class::object())?;
+    
+    umap_class.define_singleton_method("new", magnus::function!(RustUMAP::new, 1))?;
+    umap_class.define_singleton_method("load", magnus::function!(RustUMAP::load, 1))?;
+    umap_class.define_method("fit", magnus::method!(RustUMAP::fit, 1))?;
+    umap_class.define_method("fit_transform", magnus::method!(RustUMAP::fit_transform, 1))?;
+    umap_class.define_method("transform", magnus::method!(RustUMAP::transform, 1))?;
+    umap_class.define_method("save", magnus::method!(RustUMAP::save, 1))?;
+    umap_class.define_method("fitted?", magnus::method!(RustUMAP::is_fitted, 0))?;
+    
+    Ok(())
 }
