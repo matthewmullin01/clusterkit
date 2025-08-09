@@ -1,61 +1,71 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'json'
 
 module AnnEmbed
   class UMAP
+    attr_reader :n_components, :n_neighbors, :random_seed
+    
+    # Initialize a new UMAP instance
+    # @param n_components [Integer] Target number of dimensions (default: 2)
+    # @param n_neighbors [Integer] Number of neighbors for manifold approximation (default: 15)
+    # @param random_seed [Integer, nil] Random seed for reproducibility (default: nil)
     def initialize(n_components: 2, n_neighbors: 15, random_seed: nil)
       @n_components = n_components
       @n_neighbors = n_neighbors
+      @random_seed = random_seed
       @rust_umap = RustUMAP.new(
         n_components: n_components,
         n_neighbors: n_neighbors,
         random_seed: random_seed
       )
-      @last_embeddings = nil
-      @last_original_data = nil
+      @fitted = false
     end
     
-    # Load embeddings from a file
-    def self.load_embeddings(path)
-      raise ArgumentError, "File not found: #{path}" unless File.exist?(path)
-      RustUMAP.load_embeddings(path)
+    # Fit the model to the data (training)
+    # @param data [Array<Array<Numeric>>] Training data as 2D array
+    # @return [self] Returns self for method chaining
+    def fit(data)
+      validate_input(data)
+      # For UMAP, fit_transform is the actual training
+      # We just need to call it and discard the result
+      @rust_umap.fit_transform(data)
+      @fitted = true
+      self
     end
     
-    # Save embeddings to a file 
-    def self.save_embeddings(path, embeddings, original_data, options = {})
-      # Ensure directory exists
-      dir = File.dirname(path)
-      FileUtils.mkdir_p(dir) unless dir == '.' || dir == '/'
-      
-      RustUMAP.save_embeddings(path, embeddings, original_data, options)
+    # Transform data using the fitted model
+    # @param data [Array<Array<Numeric>>] Data to transform
+    # @return [Array<Array<Float>>] Transformed data in reduced dimensions
+    # @raise [RuntimeError] If model hasn't been fitted yet
+    def transform(data)
+      raise RuntimeError, "Model must be fitted before transform. Call fit or fit_transform first." unless fitted?
+      validate_input(data)
+      @rust_umap.transform(data)
     end
     
     # Fit the model and transform the data in one step
+    # @param data [Array<Array<Numeric>>] Training data as 2D array
+    # @return [Array<Array<Float>>] Transformed data in reduced dimensions
     def fit_transform(data)
       validate_input(data)
-      embeddings = @rust_umap.fit_transform(data)
-      
-      # Store for potential saving
-      @last_embeddings = embeddings
-      @last_original_data = data
-      
-      embeddings
+      result = @rust_umap.fit_transform(data)
+      @fitted = true
+      result
     end
     
-    # Save the last computed embeddings to a file
-    def save_embeddings(path)
-      raise RuntimeError, "No embeddings to save. Run fit_transform first." unless @last_embeddings
-      
-      self.class.save_embeddings(path, @last_embeddings, @last_original_data, {
-        n_components: @n_components,
-        n_neighbors: @n_neighbors
-      })
+    # Check if the model has been fitted
+    # @return [Boolean] true if model is fitted, false otherwise
+    def fitted?
+      @fitted
     end
     
-    # Save the trained UMAP model
+    # Save the fitted model to a file
+    # @param path [String] Path where to save the model
+    # @raise [RuntimeError] If model hasn't been fitted yet
     def save(path)
-      raise RuntimeError, "No model to save. Run fit_transform first." unless @last_original_data
+      raise RuntimeError, "No model to save. Call fit or fit_transform first." unless fitted?
       
       # Ensure directory exists
       dir = File.dirname(path)
@@ -64,7 +74,10 @@ module AnnEmbed
       @rust_umap.save_model(path)
     end
     
-    # Load a trained UMAP model
+    # Load a fitted model from a file
+    # @param path [String] Path to the saved model
+    # @return [UMAP] A new UMAP instance with the loaded model
+    # @raise [ArgumentError] If file doesn't exist
     def self.load(path)
       raise ArgumentError, "File not found: #{path}" unless File.exist?(path)
       
@@ -74,19 +87,27 @@ module AnnEmbed
       # Create a new UMAP instance with the loaded model
       instance = allocate
       instance.instance_variable_set(:@rust_umap, rust_umap)
-      # We don't know the original parameters, but the model should work
+      instance.instance_variable_set(:@fitted, true)
+      # The model file should contain these parameters, but for now we don't have access
       instance.instance_variable_set(:@n_components, nil)
       instance.instance_variable_set(:@n_neighbors, nil)
-      instance.instance_variable_set(:@last_embeddings, nil)
-      instance.instance_variable_set(:@last_original_data, nil)
+      instance.instance_variable_set(:@random_seed, nil)
       
       instance
     end
     
-    # Transform new data using the fitted model
-    def transform(data)
-      validate_input(data)
-      @rust_umap.transform(data)
+    # Export transformed data to JSON (utility method for caching)
+    # @param data [Array<Array<Float>>] Transformed data to export
+    # @param path [String] Path where to save the data
+    def self.export_data(data, path)
+      File.write(path, JSON.pretty_generate(data))
+    end
+    
+    # Import transformed data from JSON (utility method for caching)
+    # @param path [String] Path to the saved data
+    # @return [Array<Array<Float>>] The loaded data
+    def self.import_data(path)
+      JSON.parse(File.read(path))
     end
     
     private

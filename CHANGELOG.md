@@ -8,20 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial gem structure with Magnus integration
-- Basic API design for UMAP, t-SNE, LargeVis, and Diffusion Maps
-- Configuration system for embedding algorithms
-- SVD module for randomized SVD operations
-- Utility functions for dimension estimation and hubness analysis
-- Preprocessing module with normalization methods
-- Comprehensive documentation (README, PLAN, CLAUDE)
-- Test infrastructure with data generators
+- Clean, scikit-learn-like API for UMAP
+  - `fit(data)` - Train the model
+  - `transform(data)` - Transform new data
+  - `fit_transform(data)` - Train and transform in one step
+  - `fitted?` - Check if model is trained
+  - `save(path)` - Save trained model
+  - `load(path)` - Load trained model
+- Model persistence with save/load functionality
+- Data export/import utilities for caching results
+- Comprehensive test suite for UMAP interface
+- Detailed README with practical examples
 
 ### Changed
-- Nothing yet
+- Complete API redesign to follow ML library conventions
+- Removed confusing `save_embeddings`/`load_embeddings` methods
+- Separated model operations from data caching concerns
 
 ### Fixed
-- Nothing yet
+- Intermittent test failures with boundary assertions
+- Data normalization issues with extreme values
 
 ## [0.1.0] - TBD
 

@@ -21,8 +21,6 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     let umap_class = parent.define_class("RustUMAP", magnus::class::object())?;
     
     umap_class.define_singleton_method("new", magnus::function!(RustUMAP::new, 1))?;
-    umap_class.define_singleton_method("save_embeddings", magnus::function!(RustUMAP::save_embeddings, 4))?;
-    umap_class.define_singleton_method("load_embeddings", magnus::function!(RustUMAP::load_embeddings, 1))?;
     umap_class.define_singleton_method("load_model", magnus::function!(RustUMAP::load_model, 1))?;
     umap_class.define_method("fit_transform", magnus::method!(RustUMAP::fit_transform, 1))?;
     umap_class.define_method("save_model", magnus::method!(RustUMAP::save_model, 1))?;
@@ -212,87 +210,6 @@ impl RustUMAP {
         // Convert result back to Ruby array
         let result = RArray::new();
         for embedding in &embeddings {
-            let row = RArray::new();
-            for &val in embedding {
-                row.push(val)?;
-            }
-            result.push(row)?;
-        }
-        
-        Ok(result)
-    }
-    
-    fn save_embeddings(path: String, embeddings: Value, original_data: Value, options: RHash) -> Result<(), Error> {
-        // Convert Ruby arrays to Rust vectors
-        let embeddings_array = RArray::try_convert(embeddings)?;
-        let original_data_array = RArray::try_convert(original_data)?;
-        
-        let mut rust_embeddings = Vec::new();
-        for i in 0..embeddings_array.len() {
-            let row = embeddings_array.entry::<RArray>(i as isize)?;
-            let mut rust_row = Vec::new();
-            for j in 0..row.len() {
-                let val = row.entry::<f64>(j as isize)?;
-                rust_row.push(val);
-            }
-            rust_embeddings.push(rust_row);
-        }
-        
-        let mut rust_original_data = Vec::new();
-        for i in 0..original_data_array.len() {
-            let row = original_data_array.entry::<RArray>(i as isize)?;
-            let mut rust_row = Vec::new();
-            for j in 0..row.len() {
-                let val = row.entry::<f64>(j as isize)?;
-                rust_row.push(val as f32);
-            }
-            rust_original_data.push(rust_row);
-        }
-        
-        // Extract parameters from options
-        let n_components = match options.lookup::<_, Value>(magnus::Symbol::new("n_components")) {
-            Ok(val) => Integer::try_convert(val).unwrap().to_u32().unwrap() as usize,
-            Err(_) => 2,
-        };
-        
-        let n_neighbors = match options.lookup::<_, Value>(magnus::Symbol::new("n_neighbors")) {
-            Ok(val) => Integer::try_convert(val).unwrap().to_u32().unwrap() as usize,
-            Err(_) => 15,
-        };
-        
-        let saved_model = SavedUMAPModel {
-            n_components,
-            n_neighbors,
-            embeddings: rust_embeddings,
-            original_data: rust_original_data,
-        };
-        
-        let serialized = bincode::serialize(&saved_model)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        let mut file = File::create(&path)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        file.write_all(&serialized)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        Ok(())
-    }
-    
-    fn load_embeddings(path: String) -> Result<RArray, Error> {
-        let mut file = File::open(&path)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        let saved_model: SavedUMAPModel = bincode::deserialize(&buffer)
-            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
-        
-        // Convert embeddings back to Ruby array
-        let result = RArray::new();
-        for embedding in &saved_model.embeddings {
             let row = RArray::new();
             for &val in embedding {
                 row.push(val)?;
