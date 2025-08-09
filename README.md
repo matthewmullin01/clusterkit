@@ -35,10 +35,9 @@ Or install it yourself as:
 
 ```ruby
 require 'annembed'
-require 'numo/narray'
 
-# Generate some sample data
-data = Numo::DFloat.new(1000, 50).rand_norm
+# Generate some sample data (2D array)
+data = Array.new(1000) { Array.new(50) { rand } }
 
 # Perform UMAP embedding
 embedding = AnnEmbed.umap(data, n_components: 2, n_neighbors: 15)

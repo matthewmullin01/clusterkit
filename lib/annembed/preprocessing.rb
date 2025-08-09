@@ -1,80 +1,105 @@
 # frozen_string_literal: true
 
-require "numo/narray"
+# Pure Ruby implementation of preprocessing functions
 
 module AnnEmbed
   # Data preprocessing utilities
   module Preprocessing
     class << self
       # Normalize data using specified method
-      # @param data [Array, Numo::NArray] Input data
+      # @param data [Array] Input data (2D array)
       # @param method [Symbol] Normalization method (:standard, :minmax, :l2)
-      # @return [Numo::NArray] Normalized data
+      # @return [Array] Normalized data
       def normalize(data, method: :standard)
-        data_array = prepare_data(data)
+        raise ArgumentError, "Unsupported data type: #{data.class}" unless data.is_a?(Array)
         
         case method
         when :standard
-          standard_normalize(data_array)
+          standard_normalize(data)
         when :minmax
-          minmax_normalize(data_array)
+          minmax_normalize(data)
         when :l2
-          l2_normalize(data_array)
+          l2_normalize(data)
         else
           raise ArgumentError, "Unknown normalization method: #{method}"
         end
       end
 
       # Reduce dimensionality using PCA before embedding
-      # @param data [Array, Numo::NArray] Input data
+      # @param data [Array] Input data
       # @param n_components [Integer] Number of PCA components
-      # @return [Numo::NArray] Reduced data
+      # @return [Array] Reduced data
       def pca_reduce(data, n_components)
-        data_array = prepare_data(data)
-        
-        # Use SVD for PCA
-        mean = data_array.mean(axis: 0)
-        centered = data_array - mean
-        
-        u, s, vt = SVD.randomized_svd(centered, n_components)
-        u * s
+        # Note: This would require SVD implementation in pure Ruby
+        # For now, raise an error suggesting to use the Rust-based SVD module
+        raise NotImplementedError, "PCA reduction requires the SVD module which needs to be called directly"
       end
 
       private
 
-      def prepare_data(data)
-        case data
-        when Numo::NArray
-          data
-        when Array
-          Numo::DFloat.cast(data)
-        else
-          raise ArgumentError, "Unsupported data type: #{data.class}"
+      def standard_normalize(data)
+        # Pure Ruby implementation of standard normalization
+        return data if data.empty?
+        
+        # Calculate mean and std for each column
+        n_rows = data.size
+        n_cols = data.first.size
+        
+        means = Array.new(n_cols, 0.0)
+        stds = Array.new(n_cols, 0.0)
+        
+        # Calculate means
+        data.each do |row|
+          row.each_with_index { |val, j| means[j] += val }
+        end
+        means.map! { |m| m / n_rows }
+        
+        # Calculate standard deviations
+        data.each do |row|
+          row.each_with_index { |val, j| stds[j] += (val - means[j]) ** 2 }
+        end
+        stds.map! { |s| Math.sqrt(s / n_rows) }
+        stds.map! { |s| s == 0 ? 1.0 : s } # Avoid division by zero
+        
+        # Normalize
+        data.map do |row|
+          row.map.with_index { |val, j| (val - means[j]) / stds[j] }
         end
       end
 
-      def standard_normalize(data)
-        mean = data.mean(axis: 0)
-        std = data.stddev(axis: 0)
-        std[std.eq(0)] = 1.0 # Avoid division by zero
-        
-        (data - mean) / std
-      end
-
       def minmax_normalize(data)
-        min = data.min(axis: 0)
-        max = data.max(axis: 0)
-        range = max - min
-        range[range.eq(0)] = 1.0 # Avoid division by zero
+        # Pure Ruby implementation of min-max normalization
+        return data if data.empty?
         
-        (data - min) / range
+        n_cols = data.first.size
+        mins = Array.new(n_cols) { Float::INFINITY }
+        maxs = Array.new(n_cols) { -Float::INFINITY }
+        
+        # Find min and max for each column
+        data.each do |row|
+          row.each_with_index do |val, j|
+            mins[j] = val if val < mins[j]
+            maxs[j] = val if val > maxs[j]
+          end
+        end
+        
+        # Calculate ranges
+        ranges = mins.zip(maxs).map { |min, max| max - min }
+        ranges.map! { |r| r == 0 ? 1.0 : r } # Avoid division by zero
+        
+        # Normalize
+        data.map do |row|
+          row.map.with_index { |val, j| (val - mins[j]) / ranges[j] }
+        end
       end
 
       def l2_normalize(data)
-        norms = Numo::NMath.sqrt((data**2).sum(axis: 1))
-        norms[norms.eq(0)] = 1.0 # Avoid division by zero
-        
-        data / norms.expand_dims(1)
+        # Pure Ruby implementation of L2 normalization
+        data.map do |row|
+          norm = Math.sqrt(row.sum { |val| val ** 2 })
+          norm = 1.0 if norm == 0 # Avoid division by zero
+          row.map { |val| val / norm }
+        end
       end
     end
   end

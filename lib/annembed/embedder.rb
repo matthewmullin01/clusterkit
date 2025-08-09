@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "numo/narray"
-
 module AnnEmbed
   # Main class for performing dimensionality reduction
   class Embedder
@@ -29,11 +27,11 @@ module AnnEmbed
     def fit_transform(data)
       data_array = prepare_data(data)
       
-      @rust_embedder = RustEmbedder.new(@config.to_h)
+      @rust_embedder = RustUMAP.new(@config.to_h)
       result = @rust_embedder.fit_transform(data_array)
       @fitted = true
       
-      convert_result(result)
+      result
     end
 
     # Fit the embedder to data
@@ -42,7 +40,7 @@ module AnnEmbed
     def fit(data)
       data_array = prepare_data(data)
       
-      @rust_embedder = RustEmbedder.new(@config.to_h)
+      @rust_embedder = RustUMAP.new(@config.to_h)
       @rust_embedder.fit(data_array)
       @fitted = true
       
@@ -56,9 +54,7 @@ module AnnEmbed
       raise Error, "Embedder must be fitted before transform" unless fitted?
       
       data_array = prepare_data(data)
-      result = @rust_embedder.transform(data_array)
-      
-      convert_result(result)
+      @rust_embedder.transform(data_array)
     end
 
     # Check if embedder has been fitted
@@ -79,7 +75,7 @@ module AnnEmbed
     # @param path [String] File path
     # @return [Embedder] Loaded embedder
     def self.load(path)
-      rust_embedder = RustEmbedder.load(path)
+      rust_embedder = RustUMAP.load(path)
       embedder = allocate
       embedder.instance_variable_set(:@rust_embedder, rust_embedder)
       embedder.instance_variable_set(:@fitted, true)
@@ -91,34 +87,20 @@ module AnnEmbed
 
     def prepare_data(data)
       case data
-      when Numo::NArray
-        data
       when Array
-        Numo::DFloat.cast(data)
+        # Keep as array for RustUMAP
+        data
       when String
         # Assume it's a file path
         load_csv_data(data)
       else
-        raise ArgumentError, "Unsupported data type: #{data.class}"
-      end
-    end
-
-    def convert_result(result)
-      # Ensure result is a Numo::NArray
-      case result
-      when Numo::NArray
-        result
-      when Array
-        Numo::DFloat.cast(result)
-      else
-        result
+        raise ArgumentError, "Unsupported data type: #{data.class}. Expected Array or String (CSV path)"
       end
     end
 
     def load_csv_data(path)
       require "csv"
-      data = CSV.read(path, converters: :numeric)
-      Numo::DFloat.cast(data)
+      CSV.read(path, converters: :numeric)
     end
   end
 end

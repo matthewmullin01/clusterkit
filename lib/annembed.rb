@@ -26,9 +26,9 @@ module AnnEmbed
 
   class << self
     # Quick UMAP embedding
-    # @param data [Array, Numo::NArray] Input data
+    # @param data [Array] Input data (or Numo::NArray if available)
     # @param n_components [Integer] Number of dimensions in output
-    # @return [Numo::NArray] Embedded data
+    # @return [Array] Embedded data (or Numo::NArray if Numo is loaded)
     def umap(data, n_components: 2, **options)
       embedder = Embedder.new(method: :umap, n_components: n_components, **options)
       embedder.fit_transform(data)

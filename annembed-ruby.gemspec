@@ -28,7 +28,8 @@ Gem::Specification.new do |spec|
   spec.extensions = ["ext/annembed_ruby/extconf.rb"]
 
   # Runtime dependencies
-  spec.add_dependency "numo-narray", "~> 0.9"
+  # Numo is optional but recommended for better performance
+  # spec.add_dependency "numo-narray", "~> 0.9"
 
   # Development dependencies
   spec.add_development_dependency "rake", "~> 13.0"
