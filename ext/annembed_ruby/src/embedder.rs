@@ -4,6 +4,7 @@ use hnsw_rs::prelude::*;
 use annembed::prelude::*;
 use std::fs::File;
 use std::io::{Write, Read};
+use std::cell::RefCell;
 use bincode;
 use serde::{Serialize, Deserialize};
 
@@ -22,7 +23,10 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     umap_class.define_singleton_method("new", magnus::function!(RustUMAP::new, 1))?;
     umap_class.define_singleton_method("save_embeddings", magnus::function!(RustUMAP::save_embeddings, 4))?;
     umap_class.define_singleton_method("load_embeddings", magnus::function!(RustUMAP::load_embeddings, 1))?;
+    umap_class.define_singleton_method("load_model", magnus::function!(RustUMAP::load_model, 1))?;
     umap_class.define_method("fit_transform", magnus::method!(RustUMAP::fit_transform, 1))?;
+    umap_class.define_method("save_model", magnus::method!(RustUMAP::save_model, 1))?;
+    umap_class.define_method("transform", magnus::method!(RustUMAP::transform, 1))?;
     
     Ok(())
 }
@@ -33,6 +37,10 @@ struct RustUMAP {
     n_neighbors: usize,
     #[allow(dead_code)]
     random_seed: Option<u64>,
+    // Store the training data and embeddings for transform approximation
+    // Use RefCell for interior mutability
+    training_data: RefCell<Option<Vec<Vec<f32>>>>,
+    training_embeddings: RefCell<Option<Vec<Vec<f64>>>>,
 }
 
 impl RustUMAP {
@@ -80,6 +88,8 @@ impl RustUMAP {
             n_components,
             n_neighbors,
             random_seed,
+            training_data: RefCell::new(None),
+            training_embeddings: RefCell::new(None),
         })
     }
     
@@ -195,6 +205,10 @@ impl RustUMAP {
             embeddings.push(row);
         }
         
+        // Store the training data and embeddings for future transforms
+        *self.training_data.borrow_mut() = Some(data_f32.clone());
+        *self.training_embeddings.borrow_mut() = Some(embeddings.clone());
+        
         // Convert result back to Ruby array
         let result = RArray::new();
         for embedding in &embeddings {
@@ -288,4 +302,146 @@ impl RustUMAP {
         
         Ok(result)
     }
+    
+    // Save the full model (training data + embeddings + params) for future transforms
+    fn save_model(&self, path: String) -> Result<(), Error> {
+        // Check if we have training data
+        let training_data = self.training_data.borrow();
+        let training_embeddings = self.training_embeddings.borrow();
+        
+        let training_data_ref = training_data.as_ref()
+            .ok_or_else(|| Error::new(magnus::exception::runtime_error(), "No model to save. Run fit_transform first."))?;
+        let training_embeddings_ref = training_embeddings.as_ref()
+            .ok_or_else(|| Error::new(magnus::exception::runtime_error(), "No embeddings to save."))?;
+        
+        let saved_model = SavedUMAPModel {
+            n_components: self.n_components,
+            n_neighbors: self.n_neighbors,
+            embeddings: training_embeddings_ref.clone(),
+            original_data: training_data_ref.clone(),
+        };
+        
+        let serialized = bincode::serialize(&saved_model)
+            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+        
+        let mut file = File::create(&path)
+            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+        
+        file.write_all(&serialized)
+            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+        
+        Ok(())
+    }
+    
+    // Load a full model for transforming new data
+    fn load_model(path: String) -> Result<Self, Error> {
+        let mut file = File::open(&path)
+            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+        
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)
+            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+        
+        let saved_model: SavedUMAPModel = bincode::deserialize(&buffer)
+            .map_err(|e| Error::new(magnus::exception::runtime_error(), e.to_string()))?;
+        
+        Ok(RustUMAP {
+            n_components: saved_model.n_components,
+            n_neighbors: saved_model.n_neighbors,
+            random_seed: None,
+            training_data: RefCell::new(Some(saved_model.original_data)),
+            training_embeddings: RefCell::new(Some(saved_model.embeddings)),
+        })
+    }
+    
+    // Transform new data using k-NN approximation with the training data
+    fn transform(&self, data: Value) -> Result<RArray, Error> {
+        // Get training data
+        let training_data = self.training_data.borrow();
+        let training_embeddings = self.training_embeddings.borrow();
+        
+        let training_data_ref = training_data.as_ref()
+            .ok_or_else(|| Error::new(magnus::exception::runtime_error(), "No model loaded. Load a model or run fit_transform first."))?;
+        let training_embeddings_ref = training_embeddings.as_ref()
+            .ok_or_else(|| Error::new(magnus::exception::runtime_error(), "No embeddings available."))?;
+        
+        // Convert input data to Rust format
+        let ruby_array = RArray::try_convert(data)?;
+        let mut new_data: Vec<Vec<f32>> = Vec::new();
+        
+        for i in 0..ruby_array.len() {
+            let row = ruby_array.entry::<Value>(i as isize)?;
+            let row_array = RArray::try_convert(row)?;
+            let mut rust_row: Vec<f32> = Vec::new();
+            
+            for j in 0..row_array.len() {
+                let val = row_array.entry::<Value>(j as isize)?;
+                let float_val = if let Ok(f) = Float::try_convert(val) {
+                    f.to_f64() as f32
+                } else if let Ok(i) = Integer::try_convert(val) {
+                    i.to_i64()? as f32
+                } else {
+                    return Err(Error::new(
+                        magnus::exception::type_error(),
+                        "All values must be numeric",
+                    ));
+                };
+                rust_row.push(float_val);
+            }
+            new_data.push(rust_row);
+        }
+        
+        // For each new point, find k nearest neighbors in training data
+        // and average their embeddings (weighted by distance)
+        let k = self.n_neighbors.min(training_data_ref.len());
+        let result = RArray::new();
+        
+        for new_point in &new_data {
+            // Calculate distances to all training points
+            let mut distances: Vec<(f32, usize)> = Vec::new();
+            for (idx, train_point) in training_data_ref.iter().enumerate() {
+                let dist = euclidean_distance(new_point, train_point);
+                distances.push((dist, idx));
+            }
+            
+            // Sort by distance and take k nearest
+            distances.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            let k_nearest = &distances[..k];
+            
+            // Weighted average of k nearest embeddings
+            let mut avg_embedding = vec![0.0; self.n_components];
+            let mut total_weight = 0.0;
+            
+            for &(dist, idx) in k_nearest {
+                let weight = 1.0 / (dist as f64 + 0.001); // Inverse distance weighting
+                total_weight += weight;
+                
+                for (i, &val) in training_embeddings_ref[idx].iter().enumerate() {
+                    avg_embedding[i] += val * weight;
+                }
+            }
+            
+            // Normalize
+            for val in &mut avg_embedding {
+                *val /= total_weight;
+            }
+            
+            // Convert to Ruby array
+            let row = RArray::new();
+            for val in avg_embedding {
+                row.push(val)?;
+            }
+            result.push(row)?;
+        }
+        
+        Ok(result)
+    }
+}
+
+fn euclidean_distance(a: &[f32], b: &[f32]) -> f32 {
+    a.iter()
+        .zip(b.iter())
+        .map(|(x, y)| (x - y).powi(2))
+        .sum::<f32>()
+        .sqrt()
 }

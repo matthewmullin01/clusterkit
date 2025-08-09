@@ -53,6 +53,42 @@ module AnnEmbed
       })
     end
     
+    # Save the trained UMAP model
+    def save(path)
+      raise RuntimeError, "No model to save. Run fit_transform first." unless @last_original_data
+      
+      # Ensure directory exists
+      dir = File.dirname(path)
+      FileUtils.mkdir_p(dir) unless dir == '.' || dir == '/'
+      
+      @rust_umap.save_model(path)
+    end
+    
+    # Load a trained UMAP model
+    def self.load(path)
+      raise ArgumentError, "File not found: #{path}" unless File.exist?(path)
+      
+      # Load the Rust model
+      rust_umap = RustUMAP.load_model(path)
+      
+      # Create a new UMAP instance with the loaded model
+      instance = allocate
+      instance.instance_variable_set(:@rust_umap, rust_umap)
+      # We don't know the original parameters, but the model should work
+      instance.instance_variable_set(:@n_components, nil)
+      instance.instance_variable_set(:@n_neighbors, nil)
+      instance.instance_variable_set(:@last_embeddings, nil)
+      instance.instance_variable_set(:@last_original_data, nil)
+      
+      instance
+    end
+    
+    # Transform new data using the fitted model
+    def transform(data)
+      validate_input(data)
+      @rust_umap.transform(data)
+    end
+    
     private
     
     def validate_input(data)
