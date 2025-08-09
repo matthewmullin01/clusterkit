@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "High-performance dimensionality reduction for Ruby"
   spec.description = "Ruby bindings for annembed, providing UMAP, t-SNE, and other embedding algorithms through a simple Ruby interface"
-  spec.homepage = "https://github.com/yourusername/annembed-ruby"
+  spec.homepage = "https://github.com/cpetersen/annembed-ruby"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.7.0"
 

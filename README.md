@@ -120,7 +120,7 @@ high_dim_embedding = generate_embedding(document)  # Returns 1024-dim vector
 low_dim_embedding = reduce_embedding(high_dim_embedding)
 
 # Store in database
-save_to_database(document_id: 123, 
+save_to_database(document_id: 123,
                 embedding: low_dim_embedding,
                 original_embedding: high_dim_embedding)  # Optionally keep original
 ```
@@ -157,11 +157,11 @@ As your data distribution changes over time, you may want to retrain the model:
 def update_dimension_reduction_model
   # Get recent embeddings that represent current data distribution
   recent_embeddings = fetch_embeddings_from_database(
-    where: "created_at > ?", 
+    where: "created_at > ?",
     date: 3.months.ago,
     limit: 20000
   )
-  
+
   # Train new model
   new_embedder = AnnEmbed::Embedder.new(
     method: :umap,
@@ -169,17 +169,17 @@ def update_dimension_reduction_model
     n_neighbors: 30,
     min_dist: 0.05
   )
-  
+
   new_embedder.fit_transform(recent_embeddings)
-  
+
   # Save with timestamp
   model_path = "models/umap_1024_to_64_#{Date.today}.ann"
   new_embedder.save(model_path)
-  
+
   # Test new model before deploying
   test_embeddings = fetch_test_embeddings()
   new_results = new_embedder.transform(test_embeddings)
-  
+
   if validate_results(new_results)
     # Update symlink or config to point to new model
     File.symlink(model_path, "models/umap_1024_to_64_current.ann")
@@ -219,7 +219,7 @@ The model file enables you to:
 
 ### UMAP (Uniform Manifold Approximation and Projection)
 ```ruby
-AnnEmbed.umap(data, 
+AnnEmbed.umap(data,
   n_components: 2,
   n_neighbors: 15,
   min_dist: 0.1,
@@ -283,7 +283,7 @@ To install this gem onto your local machine, run `bundle exec rake install`.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/yourusername/annembed-ruby.
+Bug reports and pull requests are welcome on GitHub at https://github.com/cpetersen/annembed-ruby.
 
 ## License
 
