@@ -5,20 +5,29 @@ require 'json'
 
 module AnnEmbed
   class UMAP
-    attr_reader :n_components, :n_neighbors, :random_seed
+    attr_reader :n_components, :n_neighbors, :random_seed, :nb_grad_batch, :nb_sampling_by_edge
     
     # Initialize a new UMAP instance
     # @param n_components [Integer] Target number of dimensions (default: 2)
     # @param n_neighbors [Integer] Number of neighbors for manifold approximation (default: 15)
     # @param random_seed [Integer, nil] Random seed for reproducibility (default: nil)
-    def initialize(n_components: 2, n_neighbors: 15, random_seed: nil)
+    # @param nb_grad_batch [Integer] Number of gradient descent batches (default: 10)
+    #                                Controls training iterations - lower = faster but less accurate
+    # @param nb_sampling_by_edge [Integer] Number of negative samples per edge (default: 8)
+    #                                      Controls sampling quality - lower = faster but less accurate
+    def initialize(n_components: 2, n_neighbors: 15, random_seed: nil, 
+                   nb_grad_batch: 10, nb_sampling_by_edge: 8)
       @n_components = n_components
       @n_neighbors = n_neighbors
       @random_seed = random_seed
+      @nb_grad_batch = nb_grad_batch
+      @nb_sampling_by_edge = nb_sampling_by_edge
       @rust_umap = RustUMAP.new(
         n_components: n_components,
         n_neighbors: n_neighbors,
-        random_seed: random_seed
+        random_seed: random_seed,
+        nb_grad_batch: nb_grad_batch,
+        nb_sampling_by_edge: nb_sampling_by_edge
       )
       @fitted = false
     end
@@ -26,10 +35,14 @@ module AnnEmbed
     # Fit the model to the data (training)
     # @param data [Array<Array<Numeric>>] Training data as 2D array
     # @return [self] Returns self for method chaining
+    # @note UMAP's training process inherently produces embeddings. Since the
+    #       underlying Rust implementation doesn't separate training from 
+    #       transformation, we call fit_transform but discard the embeddings.
+    #       Use fit_transform if you need both training and the transformed data.
     def fit(data)
       validate_input(data)
-      # For UMAP, fit_transform is the actual training
-      # We just need to call it and discard the result
+      # UMAP doesn't separate training from transformation internally,
+      # so we call fit_transform but discard the result
       @rust_umap.fit_transform(data)
       @fitted = true
       self

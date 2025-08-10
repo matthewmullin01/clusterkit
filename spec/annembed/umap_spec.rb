@@ -32,7 +32,7 @@ RSpec.describe AnnEmbed::UMAP do
     def generate_test_data(n_points, n_features, n_clusters = 3)
       data = []
       points_per_cluster = n_points / n_clusters
-      
+
       n_clusters.times do |c|
         # Scale down the cluster centers to avoid boundary issues
         center = Array.new(n_features) { c * 0.3 }
@@ -42,7 +42,7 @@ RSpec.describe AnnEmbed::UMAP do
           data << point
         end
       end
-      
+
       data
     end
 
@@ -50,8 +50,8 @@ RSpec.describe AnnEmbed::UMAP do
       it "transforms a reasonable dataset" do
         # Use 15 points to ensure HNSW works properly
         data = generate_test_data(15, 5)
-        result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
-        
+        result = umap.fit_transform(data)
+
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(15)
         expect(result.first.length).to eq(2)
@@ -60,12 +60,12 @@ RSpec.describe AnnEmbed::UMAP do
 
       it "reduces dimensions from 10D to 2D" do
         # Generate more conservative test data with explicit normalization
-        data = 30.times.map do 
+        data = 30.times.map do
           10.times.map { rand * 0.5 + 0.25 }  # Values between 0.25 and 0.75
         end
-        
-        result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
-        
+
+        result = umap.fit_transform(data)
+
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(30)
         expect(result.first.length).to eq(2)
@@ -76,9 +76,9 @@ RSpec.describe AnnEmbed::UMAP do
         data = 15.times.map { |i| [i % 3, (i / 3) % 3, i % 5] }
         # Normalize to 0-1 range
         data = data.map { |row| row.map { |x| x / 5.0 } }
-        
-        result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
-        
+
+        result = umap.fit_transform(data)
+
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(15)
       end
@@ -128,20 +128,20 @@ RSpec.describe AnnEmbed::UMAP do
       # jina-embeddings-v2 have values in [-0.12, 0.12] centered at 0.
       # We use uniform random data in a safe range to avoid triggering
       # internal boundary checks while still testing the algorithm works.
-      
+
       # Generate uniform random data in a very conservative range
       # This ensures we never trigger the box_size assertion
       data = 30.times.map do
         3.times.map { rand * 0.02 - 0.01 }  # Range: [-0.01, 0.01]
       end
-      
-      result = OutputSuppressor.suppress_output { umap.fit_transform(data) }
-      
+
+      result = umap.fit_transform(data)
+
       # Check that we got the right number of points back
       expect(result).not_to be_nil
       expect(result.length).to eq(30)
       expect(result.first.length).to eq(2)
-      
+
       # Verify all results are valid floats
       result.each do |point|
         expect(point).to all(be_a(Float))
