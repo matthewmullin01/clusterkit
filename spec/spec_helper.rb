@@ -29,6 +29,9 @@ require "annembed"
 # Only load RSpec configuration if RSpec is available
 if defined?(RSpec)
   # require_relative "support/output_suppressor" # Temporarily disabled
+  
+  # Load fixture helpers for using real embeddings in tests
+  require_relative "support/fixture_helpers"
 
   # Suppress verbose output from the Rust extension
   # The annembed library uses env_logger which respects RUST_LOG
