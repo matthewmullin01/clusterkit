@@ -69,6 +69,25 @@ namespace :rust do
   end
 end
 
+# Coverage task
+desc "Run specs with code coverage"
+task :coverage do
+  ENV['COVERAGE'] = 'true'
+  Rake::Task["spec"].invoke
+end
+
+# Coverage report task
+desc "Open coverage report in browser"
+task :"coverage:report" => :coverage do
+  if RUBY_PLATFORM =~ /darwin/
+    sh "open coverage/index.html"
+  elsif RUBY_PLATFORM =~ /linux/
+    sh "xdg-open coverage/index.html"
+  else
+    puts "Coverage report generated at coverage/index.html"
+  end
+end
+
 # CI task that runs all checks
 desc "Run all CI checks"
-task ci: ["rust:fmt", "rust:clippy", "compile", "spec"]
+task ci: ["rust:fmt", "rust:clippy", "compile", "spec", "coverage"]
