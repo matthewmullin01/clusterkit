@@ -1,84 +1,26 @@
-name: CI
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-
+name: build
+on: pull_request
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        ruby: ['2.7', '3.0', '3.1', '3.2', '3.3']
-        exclude:
-          # Windows doesn't play nice with older Ruby versions
-          - os: windows-latest
-            ruby: '2.7'
-
+  build:
+    runs-on: red-candle-runner
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby }}
-        bundler-cache: true
-    
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        components: rustfmt, clippy
-    
-    - name: Install dependencies
-      run: bundle install
-    
-    - name: Run Rust checks
-      run: |
-        bundle exec rake rust:fmt
-        bundle exec rake rust:clippy
-    
-    - name: Compile extension
-      run: bundle exec rake compile
-    
-    - name: Run tests
-      run: bundle exec rake test
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tmp
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-  build-gems:
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: '3.2'
-    
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-    
-    - name: Install dependencies
-      run: |
-        gem install rake-compiler rake-compiler-dock
-        bundle install
-    
-    - name: Build native gems
-      run: |
-        bundle exec rake gem:native
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: native-gems
-        path: pkg/*.gem
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ruby
+          bundler-cache: true
+
+      - name: Compile native extension
+        run: bundle exec rake compile
+
+      - name: Run specs
+        run: |
+          bundle exec rake spec
