@@ -2,6 +2,8 @@
 
 require 'fileutils'
 require 'json'
+require_relative 'configuration'
+require_relative 'silence'
 
 module AnnEmbed
   class UMAP
@@ -43,7 +45,9 @@ module AnnEmbed
       validate_input(data)
       # UMAP doesn't separate training from transformation internally,
       # so we call fit_transform but discard the result
-      @rust_umap.fit_transform(data)
+      Silence.maybe_silence do
+        @rust_umap.fit_transform(data)
+      end
       @fitted = true
       self
     end
@@ -55,7 +59,9 @@ module AnnEmbed
     def transform(data)
       raise RuntimeError, "Model must be fitted before transform. Call fit or fit_transform first." unless fitted?
       validate_input(data)
-      @rust_umap.transform(data)
+      Silence.maybe_silence do
+        @rust_umap.transform(data)
+      end
     end
     
     # Fit the model and transform the data in one step
@@ -63,7 +69,9 @@ module AnnEmbed
     # @return [Array<Array<Float>>] Transformed data in reduced dimensions
     def fit_transform(data)
       validate_input(data)
-      result = @rust_umap.fit_transform(data)
+      result = Silence.maybe_silence do
+        @rust_umap.fit_transform(data)
+      end
       @fitted = true
       result
     end

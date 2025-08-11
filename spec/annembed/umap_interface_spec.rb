@@ -16,7 +16,7 @@ RSpec.describe "AnnEmbed::UMAP interface" do
       generate_structured_test_data(15, 30)
     end
   end
-  
+
   let(:new_data) do
     if fixtures_available?
       # Use a subset of different embeddings for transform testing
@@ -28,19 +28,14 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
   describe "initialization" do
     it "creates a new UMAP instance with default parameters" do
-      spec_start_time = Time.now
-      puts "Starting spec: creates a new UMAP instance with default parameters"
       umap = AnnEmbed::UMAP.new
       expect(umap).to be_instance_of(AnnEmbed::UMAP)
       expect(umap.n_components).to eq(2)
       expect(umap.n_neighbors).to eq(15)
       expect(umap.random_seed).to be_nil
-      puts "Finishing spec: creates a new UMAP instance with default parameters - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "accepts custom parameters" do
-      spec_start_time = Time.now
-      puts "Starting spec: accepts custom parameters"
       umap = AnnEmbed::UMAP.new(
         n_components: 3,
         n_neighbors: 10,
@@ -49,7 +44,6 @@ RSpec.describe "AnnEmbed::UMAP interface" do
       expect(umap.n_components).to eq(3)
       expect(umap.n_neighbors).to eq(10)
       expect(umap.random_seed).to eq(42)
-      puts "Finishing spec: accepts custom parameters - Time taken: #{Time.now - spec_start_time}"
     end
   end
 
@@ -59,28 +53,18 @@ RSpec.describe "AnnEmbed::UMAP interface" do
     let(:umap) { AnnEmbed::UMAP.new(n_neighbors: 5) }
 
     it "returns false for unfitted model" do
-      spec_start_time = Time.now
-      puts "Starting spec: returns false for unfitted model"
       expect(umap.fitted?).to be false
-      puts "Finishing spec: returns false for unfitted model - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "returns true after fit" do
-      spec_start_time = Time.now
-      puts "Starting spec: returns true after fit"
       umap.fit(test_data)
-      puts "Middle spec: returns true after fit - Time taken: #{Time.now - spec_start_time}"
       expect(umap.fitted?).to be true
-      puts "Finishing spec: returns true after fit - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "returns true after fit_transform" do
-      spec_start_time = Time.now
-      puts "Starting spec: returns true after fit_transform"
       umap2 = AnnEmbed::UMAP.new(n_neighbors: 5)
       umap2.fit_transform(test_data)
       expect(umap2.fitted?).to be true
-      puts "Finishing spec: returns true after fit_transform - Time taken: #{Time.now - spec_start_time}"
     end
   end
 
@@ -88,28 +72,19 @@ RSpec.describe "AnnEmbed::UMAP interface" do
     let(:umap) { AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     it "returns self for method chaining" do
-      spec_start_time = Time.now
-      puts "Starting spec: returns self for method chaining"
       result = umap.fit(test_data)
       expect(result).to be(umap)
-      puts "Finishing spec: returns self for method chaining - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "marks the model as fitted" do
-      spec_start_time = Time.now
-      puts "Starting spec: marks the model as fitted"
       umap.fit(test_data)
       expect(umap.fitted?).to be true
-      puts "Finishing spec: marks the model as fitted - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "raises error for invalid input" do
-      spec_start_time = Time.now
-      puts "Starting spec: raises error for invalid input"
       expect { umap.fit("not an array") }.to raise_error(ArgumentError, /must be an array/)
       expect { umap.fit([]) }.to raise_error(ArgumentError, /cannot be empty/)
       expect { umap.fit([1, 2, 3]) }.to raise_error(ArgumentError, /must be a 2D array/)
-      puts "Finishing spec: raises error for invalid input - Time taken: #{Time.now - spec_start_time}"
     end
   end
 
@@ -118,10 +93,7 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
     context "with unfitted model" do
       it "raises error" do
-        spec_start_time = Time.now
-        puts "Starting spec: raises error"
         expect { umap.transform(new_data) }.to raise_error(RuntimeError, /Model must be fitted/)
-        puts "Finishing spec: raises error - Time taken: #{Time.now - spec_start_time}"
       end
     end
 
@@ -131,19 +103,14 @@ RSpec.describe "AnnEmbed::UMAP interface" do
       end
 
       it "transforms new data" do
-        spec_start_time = Time.now
-        puts "Starting spec: transforms new data"
         result = umap.transform(new_data)
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(3)
         expect(result.first.length).to eq(2)
         expect(result.first.first).to be_instance_of(Float)
-        puts "Finishing spec: transforms new data - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "transforms multiple batches consistently" do
-        spec_start_time = Time.now
-        puts "Starting spec: transforms multiple batches consistently"
         result1 = umap.transform(new_data)
         result2 = umap.transform(new_data)
 
@@ -154,7 +121,6 @@ RSpec.describe "AnnEmbed::UMAP interface" do
             expect(val1).to be_within(0.0001).of(point2[j])
           end
         end
-        puts "Finishing spec: transforms multiple batches consistently - Time taken: #{Time.now - spec_start_time}"
       end
     end
   end
@@ -163,20 +129,15 @@ RSpec.describe "AnnEmbed::UMAP interface" do
     let(:umap) { AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     it "fits and transforms in one step" do
-      spec_start_time = Time.now
-      puts "Starting spec: fits and transforms in one step"
       result = umap.fit_transform(test_data)
 
       expect(result).to be_instance_of(Array)
       expect(result.length).to eq(15)
       expect(result.first.length).to eq(2)
       expect(umap.fitted?).to be true
-      puts "Finishing spec: fits and transforms in one step - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "both fit_transform and fit->transform produce valid embeddings" do
-      spec_start_time = Time.now
-      puts "Starting spec: both fit_transform and fit->transform produce valid embeddings"
       # Use fixed random seed for reproducibility
       umap1 = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5, random_seed: 42)
       umap2 = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5, random_seed: 42)
@@ -192,7 +153,7 @@ RSpec.describe "AnnEmbed::UMAP interface" do
       expect(result1).to be_instance_of(Array)
       expect(result1.length).to eq(15)
       expect(result1.first.length).to eq(2)
-      
+
       expect(result2).to be_instance_of(Array)
       expect(result2.length).to eq(15)
       expect(result2.first.length).to eq(2)
@@ -203,18 +164,16 @@ RSpec.describe "AnnEmbed::UMAP interface" do
         min_val = all_values.min
         max_val = all_values.max
         spread = max_val - min_val
-        
+
         expect(spread).to be > 0.1, "Method #{idx + 1} produced degenerate embeddings with spread #{spread}"
-        
+
         # Check that not all points are the same
         first_point = result.first
-        not_all_same = result.any? { |point| 
+        not_all_same = result.any? { |point|
           point.zip(first_point).any? { |a, b| (a - b).abs > 0.01 }
         }
         expect(not_all_same).to eq(true)
       end
-      
-      puts "Finishing spec: both fit_transform and fit->transform produce valid embeddings - Time taken: #{Time.now - spec_start_time}"
     end
   end
 
@@ -228,26 +187,18 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
     describe "#save" do
       it "raises error for unfitted model" do
-        spec_start_time = Time.now
-        puts "Starting spec: raises error for unfitted model"
         expect { umap.save(model_path) }.to raise_error(RuntimeError, /No model to save/)
-        puts "Finishing spec: raises error for unfitted model - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "saves fitted model" do
-        spec_start_time = Time.now
-        puts "Starting spec: saves fitted model"
         umap.fit(test_data)
         umap.save(model_path)
 
         expect(File.exist?(model_path)).to be true
         expect(File.size(model_path)).to be > 0
-        puts "Finishing spec: saves fitted model - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "creates directory if needed" do
-        spec_start_time = Time.now
-        puts "Starting spec: creates directory if needed"
         nested_path = File.join(Dir.tmpdir, "test_umap_#{Time.now.to_i}", "model.bin")
         umap.fit(test_data)
         umap.save(nested_path)
@@ -256,21 +207,15 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
         # Clean up
         FileUtils.rm_rf(File.dirname(nested_path))
-        puts "Finishing spec: creates directory if needed - Time taken: #{Time.now - spec_start_time}"
       end
     end
 
     describe ".load" do
       it "raises error for non-existent file" do
-        spec_start_time = Time.now
-        puts "Starting spec: raises error for non-existent file"
         expect { AnnEmbed::UMAP.load("nonexistent.bin") }.to raise_error(ArgumentError, /File not found/)
-        puts "Finishing spec: raises error for non-existent file - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "loads saved model" do
-        spec_start_time = Time.now
-        puts "Starting spec: loads saved model"
         # Train and save
         umap.fit_transform(test_data)
         umap.save(model_path)
@@ -280,12 +225,9 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
         expect(loaded_umap).to be_instance_of(AnnEmbed::UMAP)
         expect(loaded_umap.fitted?).to be true
-        puts "Finishing spec: loads saved model - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "loaded model can transform new data" do
-        spec_start_time = Time.now
-        puts "Starting spec: loaded model can transform new data"
         # Train and save
         original_result = umap.fit_transform(test_data)
         umap.save(model_path)
@@ -297,12 +239,9 @@ RSpec.describe "AnnEmbed::UMAP interface" do
         expect(new_result).to be_instance_of(Array)
         expect(new_result.length).to eq(3)
         expect(new_result.first.length).to eq(2)
-        puts "Finishing spec: loaded model can transform new data - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "loaded model produces consistent results" do
-        spec_start_time = Time.now
-        puts "Starting spec: loaded model produces consistent results"
         # Train and save
         umap.fit(test_data)
         original_transform = umap.transform(new_data)
@@ -319,7 +258,6 @@ RSpec.describe "AnnEmbed::UMAP interface" do
             expect(val1).to be_within(0.0001).of(point2[j])
           end
         end
-        puts "Finishing spec: loaded model produces consistent results - Time taken: #{Time.now - spec_start_time}"
       end
     end
   end
@@ -334,54 +272,40 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
     describe ".export_data" do
       it "exports data to JSON" do
-        spec_start_time = Time.now
-        puts "Starting spec: exports data to JSON"
         AnnEmbed::UMAP.export_data(data, data_path)
 
         expect(File.exist?(data_path)).to be true
         content = JSON.parse(File.read(data_path))
         expect(content).to eq(data)
-        puts "Finishing spec: exports data to JSON - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "creates readable JSON" do
-        spec_start_time = Time.now
-        puts "Starting spec: creates readable JSON"
         AnnEmbed::UMAP.export_data(data, data_path)
         content = File.read(data_path)
 
         expect(content).to include("\n") # Pretty printed
         expect(content).to include("  ") # Indented
-        puts "Finishing spec: creates readable JSON - Time taken: #{Time.now - spec_start_time}"
       end
     end
 
     describe ".import_data" do
       it "imports data from JSON" do
-        spec_start_time = Time.now
-        puts "Starting spec: imports data from JSON"
         File.write(data_path, JSON.generate(data))
         imported = AnnEmbed::UMAP.import_data(data_path)
 
         expect(imported).to eq(data)
-        puts "Finishing spec: imports data from JSON - Time taken: #{Time.now - spec_start_time}"
       end
 
       it "handles pretty-printed JSON" do
-        spec_start_time = Time.now
-        puts "Starting spec: handles pretty-printed JSON"
         File.write(data_path, JSON.pretty_generate(data))
         imported = AnnEmbed::UMAP.import_data(data_path)
 
         expect(imported).to eq(data)
-        puts "Finishing spec: handles pretty-printed JSON - Time taken: #{Time.now - spec_start_time}"
       end
     end
 
     describe "roundtrip" do
       it "preserves data through export/import" do
-        spec_start_time = Time.now
-        puts "Starting spec: preserves data through export/import"
         umap = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5)
         result = umap.fit_transform(test_data)
 
@@ -393,7 +317,6 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
         # Should be identical
         expect(imported).to eq(result)
-        puts "Finishing spec: preserves data through export/import - Time taken: #{Time.now - spec_start_time}"
       end
     end
   end
@@ -402,8 +325,6 @@ RSpec.describe "AnnEmbed::UMAP interface" do
     let(:umap) { AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     it "handles minimum viable dataset" do
-      spec_start_time = Time.now
-      puts "Starting spec: handles minimum viable dataset"
       # UMAP needs at least n_neighbors + 1 points
       # With only 6 points, we need n_neighbors < 6, preferably 3 or less
       min_data = if fixtures_available?
@@ -416,12 +337,9 @@ RSpec.describe "AnnEmbed::UMAP interface" do
       small_umap = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 3)
       result = small_umap.fit_transform(min_data)
       expect(result.length).to eq(6)
-      puts "Finishing spec: handles minimum viable dataset - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "handles high-dimensional data" do
-      spec_start_time = Time.now
-      puts "Starting spec: handles high-dimensional data"
       high_dim_data = if fixtures_available?
         # Real embeddings are already high-dimensional (384D for MiniLM)
         load_embedding_subset('clusters_30', 20)
@@ -431,57 +349,45 @@ RSpec.describe "AnnEmbed::UMAP interface" do
 
       result = umap.fit_transform(high_dim_data)
       expect(result.first.length).to eq(2)
-      puts "Finishing spec: handles high-dimensional data - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "validates data consistency" do
-      spec_start_time = Time.now
-      puts "Starting spec: validates data consistency"
       inconsistent_data = [
         [1.0, 2.0, 3.0],
         [4.0, 5.0]  # Different length
       ]
 
       expect { umap.fit(inconsistent_data) }.to raise_error(ArgumentError, /same length/)
-      puts "Finishing spec: validates data consistency - Time taken: #{Time.now - spec_start_time}"
     end
 
     it "validates numeric data" do
-      spec_start_time = Time.now
-      puts "Starting spec: validates numeric data"
       non_numeric_data = [
         [1.0, "two"],
         [3.0, 4.0]
       ]
 
       expect { umap.fit(non_numeric_data) }.to raise_error(ArgumentError, /not numeric/)
-      puts "Finishing spec: validates numeric data - Time taken: #{Time.now - spec_start_time}"
     end
-    
+
     it "handles clustered embedding data (if fixtures available)" do
-      spec_start_time = Time.now
-      
       if fixtures_available?
-        puts "Starting spec: handles clustered embedding data"
-        
         # Load real embeddings with 3 distinct clusters
         clustered_data = load_embedding_fixture('clusters_30')
-        
+
         umap = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5)
         result = umap.fit_transform(clustered_data)
-        
+
         expect(result).to be_instance_of(Array)
         expect(result.length).to eq(30)
         expect(result.first.length).to eq(2)
-        
+
         # The embeddings should have reasonable values (not all the same)
         values = result.flatten
         min_val = values.min
         max_val = values.max
         range = max_val - min_val
-        
+
         expect(range).to be > 0.1  # Should have some spread
-        puts "Finishing spec: handles clustered embedding data - Time taken: #{Time.now - spec_start_time}"
       else
         skip "Embedding fixtures not available"
       end

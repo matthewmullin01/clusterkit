@@ -2,6 +2,7 @@
 
 require_relative "annembed/version"
 require_relative "annembed/annembed_ruby"
+require_relative "annembed/configuration"
 
 # Main module for annembed-ruby gem
 # Provides high-performance dimensionality reduction algorithms
@@ -23,6 +24,7 @@ module AnnEmbed
   autoload :SVD, "annembed/svd"
   autoload :Utils, "annembed/utils"
   autoload :Preprocessing, "annembed/preprocessing"
+  autoload :Silence, "annembed/silence"
 
   class << self
     # Quick UMAP embedding
