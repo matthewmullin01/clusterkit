@@ -32,6 +32,7 @@ Gem::Specification.new do |spec|
   # spec.add_dependency "numo-narray", "~> 0.9"
 
   # Development dependencies
+  spec.add_development_dependency "csv"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rake-compiler", "~> 1.2"
   spec.add_development_dependency "rb_sys", "~> 0.9"
