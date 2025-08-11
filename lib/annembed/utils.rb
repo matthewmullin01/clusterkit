@@ -44,7 +44,7 @@ module AnnEmbed
       def symbolize_keys(hash)
         return hash unless hash.is_a?(Hash)
         
-        hash.transform_keys(&:to_sym)
+        hash.transform_keys { |key| key.to_s.to_sym }
       end
     end
   end
