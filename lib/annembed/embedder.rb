@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative 'configuration'
+require_relative 'silence'
+
 module AnnEmbed
   # Main class for performing dimensionality reduction
   class Embedder
@@ -27,8 +30,10 @@ module AnnEmbed
     def fit_transform(data)
       data_array = prepare_data(data)
       
-      @rust_embedder = RustUMAP.new(@config.to_h)
-      result = @rust_embedder.fit_transform(data_array)
+      result = Silence.maybe_silence do
+        @rust_embedder = RustUMAP.new(@config.to_h)
+        @rust_embedder.fit_transform(data_array)
+      end
       @fitted = true
       
       result
@@ -40,8 +45,11 @@ module AnnEmbed
     def fit(data)
       data_array = prepare_data(data)
       
-      @rust_embedder = RustUMAP.new(@config.to_h)
-      @rust_embedder.fit(data_array)
+      Silence.maybe_silence do
+        @rust_embedder = RustUMAP.new(@config.to_h)
+        # RustUMAP doesn't have a separate fit method, so we use fit_transform and discard the result
+        @rust_embedder.fit_transform(data_array)
+      end
       @fitted = true
       
       self
@@ -54,7 +62,9 @@ module AnnEmbed
       raise Error, "Embedder must be fitted before transform" unless fitted?
       
       data_array = prepare_data(data)
-      @rust_embedder.transform(data_array)
+      Silence.maybe_silence do
+        @rust_embedder.transform(data_array)
+      end
     end
 
     # Check if embedder has been fitted
@@ -68,14 +78,14 @@ module AnnEmbed
     def save(path)
       raise Error, "Embedder must be fitted before saving" unless fitted?
       
-      @rust_embedder.save(path)
+      @rust_embedder.save_model(path)
     end
 
     # Load an embedder from a file
     # @param path [String] File path
     # @return [Embedder] Loaded embedder
     def self.load(path)
-      rust_embedder = RustUMAP.load(path)
+      rust_embedder = RustUMAP.load_model(path)
       embedder = allocate
       embedder.instance_variable_set(:@rust_embedder, rust_embedder)
       embedder.instance_variable_set(:@fitted, true)

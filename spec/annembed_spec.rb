@@ -50,8 +50,9 @@ RSpec.describe AnnEmbed do
     end
     
     # Don't force load other classes that might not be implemented yet
-    it 'defines autoload for Embedder' do
-      expect(AnnEmbed.autoload?(:Embedder)).to eq("annembed/embedder")
+    it 'has Embedder defined or autoloaded' do
+      # Embedder might already be loaded or still autoloaded
+      expect(defined?(AnnEmbed::Embedder) || AnnEmbed.autoload?(:Embedder)).to be_truthy
     end
     
     it 'has SVD defined or autoloaded' do
