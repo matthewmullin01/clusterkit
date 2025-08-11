@@ -307,7 +307,7 @@ RSpec.describe AnnEmbed::Embedder do
       it 'raises error when loading' do
         expect {
           described_class.load('/non/existent/file.bin')
-        }.to raise_error
+        }.to raise_error(RuntimeError, /No such file or directory/)
       end
     end
   end
