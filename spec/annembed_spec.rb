@@ -65,8 +65,9 @@ RSpec.describe AnnEmbed do
       expect(defined?(AnnEmbed::Utils) || AnnEmbed.autoload?(:Utils)).to be_truthy
     end
     
-    it 'defines autoload for Preprocessing' do
-      expect(AnnEmbed.autoload?(:Preprocessing)).to eq("annembed/preprocessing")
+    it 'has Preprocessing defined or autoloaded' do
+      # Preprocessing might already be loaded or still autoloaded
+      expect(defined?(AnnEmbed::Preprocessing) || AnnEmbed.autoload?(:Preprocessing)).to be_truthy
     end
   end
   
