@@ -42,6 +42,12 @@ namespace :annembed do
     # Use k=3 for this visualization (or detect from elbow)
     optimal_k = detect_optimal_k(elbow_results)
     
+    puts "Elbow method results:"
+    elbow_results.sort.each do |k, inertia|
+      puts "  k=#{k}: #{inertia.round(2)}"
+    end
+    puts "Detected optimal k: #{optimal_k}"
+    
     kmeans_umap = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
     kmeans_labels_umap = kmeans_umap.fit_predict(umap_data)
     
@@ -80,11 +86,11 @@ namespace :annembed do
     labels = []
     
     n_clusters.times do |cluster_id|
-      # Keep values smaller to avoid UMAP issues
-      center = Array.new(n_features) { rand + cluster_id * 2 }
+      # Keep values smaller and normalized to avoid UMAP issues
+      center = Array.new(n_features) { (rand - 0.5) * 0.3 + cluster_id * 0.3 }
       
       n_points_per_cluster.times do
-        point = center.map { |c| c + (rand - 0.5) * 0.5 }
+        point = center.map { |c| c + (rand - 0.5) * 0.1 }
         data << point
         labels << cluster_id
       end
@@ -98,23 +104,23 @@ namespace :annembed do
     labels = []
     
     n_points.times do |i|
-      t = 1.5 * Math::PI * (1 + 2 * i.to_f / n_points)
-      height = 21 * rand
+      t = 0.5 * Math::PI * (1 + 2 * i.to_f / n_points)
+      height = rand
       
-      x = t * Math.cos(t)
-      y = height
-      z = t * Math.sin(t)
+      x = t * Math.cos(t) * 0.1
+      y = height * 0.1
+      z = t * Math.sin(t) * 0.1
       
       point = [x, y, z]
       
       # Add correlated features
       10.times do |j|
-        point << x * Math.sin(j) + y * Math.cos(j) + (rand - 0.5) * 0.5
+        point << x * Math.sin(j) + y * Math.cos(j) + (rand - 0.5) * 0.01
       end
       
       # Add random features
       37.times do
-        point << rand * 0.1
+        point << rand * 0.01
       end
       
       data << point
@@ -129,18 +135,18 @@ namespace :annembed do
     labels = []
     
     species_params = [
-      { sepal_length: 5.0, sepal_width: 3.4, petal_length: 1.5, petal_width: 0.2 },
-      { sepal_length: 5.9, sepal_width: 2.8, petal_length: 4.3, petal_width: 1.3 },
-      { sepal_length: 6.5, sepal_width: 3.0, petal_length: 5.5, petal_width: 2.0 }
+      { sepal_length: 0.5, sepal_width: 0.34, petal_length: 0.15, petal_width: 0.02 },
+      { sepal_length: 0.59, sepal_width: 0.28, petal_length: 0.43, petal_width: 0.13 },
+      { sepal_length: 0.65, sepal_width: 0.30, petal_length: 0.55, petal_width: 0.20 }
     ]
     
     species_params.each_with_index do |params, species_id|
       50.times do
         features = [
-          params[:sepal_length] + (rand - 0.5) * 0.8,
-          params[:sepal_width] + (rand - 0.5) * 0.6,
-          params[:petal_length] + (rand - 0.5) * 0.8,
-          params[:petal_width] + (rand - 0.5) * 0.4
+          params[:sepal_length] + (rand - 0.5) * 0.08,
+          params[:sepal_width] + (rand - 0.5) * 0.06,
+          params[:petal_length] + (rand - 0.5) * 0.08,
+          params[:petal_width] + (rand - 0.5) * 0.04
         ]
         
         # Expand to 50 dimensions
@@ -148,13 +154,13 @@ namespace :annembed do
         
         features.each do |f1|
           features.each do |f2|
-            expanded << f1 * f2 * 0.1
+            expanded << f1 * f2 * 0.01
           end
         end
         
         features.each_with_index do |f, i|
-          expanded << Math.sin(f * i)
-          expanded << Math.cos(f * i)
+          expanded << Math.sin(f) * 0.01 * (i + 1)
+          expanded << Math.cos(f) * 0.01 * (i + 1)
         end
         
         while expanded.length < 50
@@ -181,7 +187,16 @@ namespace :annembed do
       drop = elbow_results[k1] - elbow_results[k2]
       if drop > max_drop
         max_drop = drop
-        optimal_k = k1
+        optimal_k = k2  # Use k2 - the value AFTER the big drop
+      end
+    end
+    
+    # Also check if the biggest drop happens before k=2
+    # (meaning k=2 might be optimal)
+    if k_values.include?(2) && elbow_results[2]
+      first_drop = elbow_results[k_values.first] - elbow_results[2] if k_values.first < 2
+      if first_drop && first_drop > max_drop
+        optimal_k = 2
       end
     end
     
