@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 magnus = { version = "0.6", features = ["embed"] }
 annembed = { git = "https://github.com/jean-pierreBoth/annembed" }
 hnsw_rs = "0.3"
-ndarray = "0.15"
+ndarray = "0.16"
 num-traits = "0.2"
 rayon = "1.7"
 serde = { version = "1.0", features = ["derive"] }

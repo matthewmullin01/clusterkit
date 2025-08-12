@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
-# Pure Ruby wrapper for SVD operations
+require_relative 'annembed_ruby'
 
 module AnnEmbed
-  # Module for SVD operations
+  # Module for SVD operations - methods are added by the Rust extension
   module SVD
+    # Extend the module with Ruby convenience methods
+    # The Rust extension already defined randomized_svd_rust on this module
+    
     class << self
       # Perform randomized SVD
       # @param matrix [Array, Numo::NArray] Input matrix
@@ -24,8 +27,6 @@ module AnnEmbed
       def truncated_svd(matrix, k)
         randomized_svd(matrix, k, n_iter: 2)
       end
-
-      private
     end
   end
 end

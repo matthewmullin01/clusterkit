@@ -4,7 +4,8 @@ High-performance dimensionality reduction for Ruby, powered by the [annembed](ht
 
 ## Features
 
-- **UMAP algorithm**: State-of-the-art dimensionality reduction
+- **Multiple algorithms**: UMAP, t-SNE, LargeVis, and Diffusion Maps for dimensionality reduction
+- **SVD**: Randomized Singular Value Decomposition for linear dimensionality reduction
 - **High performance**: Leverages Rust's speed and parallelization
 - **Easy to use**: Simple, scikit-learn-like API
 - **Model persistence**: Save and load trained models
@@ -31,36 +32,168 @@ Or install it yourself as:
 - Ruby 2.7 or higher
 - Rust toolchain (for building from source)
 
-## Quick Start
+## Quick Start - Interactive Example
+
+Copy and paste this into IRB to try out the main features:
 
 ```ruby
 require 'annembed'
+require 'annembed/svd'  # For SVD functionality
 
-# Generate some sample data (2D array)
+# Generate sample high-dimensional data
+# Imagine this is text embeddings, image features, or any high-dim data
+puts "Creating sample data: 100 points in 50 dimensions"
 data = Array.new(100) { Array.new(50) { rand } }
 
-# Create a UMAP instance
-umap = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 15)
+# ============================================================
+# 1. UMAP - State-of-the-art non-linear dimensionality reduction
+# ============================================================
+puts "\n1. UMAP - Reducing to 2D for visualization"
+embedder = AnnEmbed::Embedder.new(
+  method: :umap,
+  n_components: 2,    # Reduce to 2D
+  n_neighbors: 15      # Balance local/global structure
+)
 
-# Fit and transform in one step
-embedding = umap.fit_transform(data)
+# Fit and transform the data
+umap_result = embedder.fit_transform(data)
+puts "   Shape: #{umap_result.size} points × #{umap_result.first.size} dimensions"
+puts "   First point: [#{umap_result.first.map { |v| v.round(3) }.join(', ')}]"
 
-# Or fit and transform separately
-umap.fit(data)
-embedding = umap.transform(data)
+# Save the trained model
+embedder.save("umap_model.bin")
+puts "   Model saved to umap_model.bin"
 
-# Check if model is fitted
-puts "Model fitted: #{umap.fitted?}"
+# ============================================================
+# 2. t-SNE - Popular for visualization, especially clusters
+# ============================================================
+puts "\n2. t-SNE - Alternative visualization method"
+tsne = AnnEmbed::Embedder.new(
+  method: :tsne,
+  n_components: 2,
+  perplexity: 30.0    # Balances local/global structure
+)
 
-# Save the model for later use
-umap.save("model.bin")
+tsne_result = tsne.fit_transform(data)
+puts "   Shape: #{tsne_result.size} points × #{tsne_result.first.size} dimensions"
+puts "   First point: [#{tsne_result.first.map { |v| v.round(3) }.join(', ')}]"
 
-# Load and use a saved model
-loaded_umap = AnnEmbed::UMAP.load("model.bin")
-new_embedding = loaded_umap.transform(new_data)
+# ============================================================
+# 3. SVD - Fast linear dimensionality reduction
+# ============================================================
+puts "\n3. SVD - Linear dimensionality reduction (like PCA)"
+# Reduce to top 10 components
+u, s, vt = AnnEmbed.svd(data, 10, n_iter: 2)
+puts "   U shape: #{u.size}×#{u.first.size} (transformed data)"
+puts "   S values: [#{s[0..2].map { |v| v.round(2) }.join(', ')}, ...]"
+puts "   V^T shape: #{vt.size}×#{vt.first.size} (components)"
+
+# The reduced data is in U
+svd_result = u
+puts "   First point: [#{svd_result.first[0..2].map { |v| v.round(3) }.join(', ')}, ...]"
+
+# ============================================================
+# 4. Transform new data with a trained model
+# ============================================================
+puts "\n4. Transforming new data with saved UMAP model"
+# Load the saved model
+loaded = AnnEmbed::Embedder.load("umap_model.bin")
+
+# New data (5 new points)
+new_data = Array.new(5) { Array.new(50) { rand } }
+new_embedding = loaded.transform(new_data)
+puts "   New data shape: #{new_embedding.size}×#{new_embedding.first.size}"
+puts "   First new point: [#{new_embedding.first.map { |v| v.round(3) }.join(', ')}]"
+
+# ============================================================
+# 5. Comparison - Which method to use?
+# ============================================================
+puts "\n5. Quick comparison:"
+puts "   UMAP: Best for preserving both local and global structure"
+puts "   t-SNE: Great for visualizing clusters, but slower"
+puts "   SVD: Fastest, linear, good for denoising or pre-processing"
+
+# ============================================================
+# 6. Practical tip: Reduce dimensions for faster similarity search
+# ============================================================
+puts "\n6. Example: Speeding up similarity search"
+# Original: 100 points × 50 dimensions = 5000 numbers to store
+# After UMAP: 100 points × 2 dimensions = 200 numbers to store
+# That's 25× less storage and faster distance calculations!
+
+puts "\nStorage comparison:"
+puts "   Original: #{data.size * data.first.size} floats"
+puts "   After UMAP: #{umap_result.size * umap_result.first.size} floats"
+puts "   Reduction: #{((1 - (umap_result.first.size.to_f / data.first.size)) * 100).round(1)}%"
+
+puts "\n✅ Done! You've just reduced 50D data to 2D using three different methods!"
+```
+
+## Quick Start - Simplified API
+
+For convenience, you can also use the simplified API:
+
+```ruby
+require 'annembed'
+require 'annembed/svd'
+
+# Generate sample data
+data = Array.new(100) { Array.new(50) { rand } }
+
+# One-line dimensionality reduction
+umap_2d = AnnEmbed.umap(data, n_components: 2)
+tsne_2d = AnnEmbed.tsne(data, n_components: 2)
+u, s, vt = AnnEmbed.svd(data, 10)  # Top 10 components
+
+# Results are ready to use!
+puts "UMAP result: #{umap_2d.first}"
+puts "t-SNE result: #{tsne_2d.first}"
+puts "SVD result: #{u.first}"
 ```
 
 ## API Reference
+
+### AnnEmbed::Embedder
+
+The universal class for all dimensionality reduction algorithms.
+
+```ruby
+# Create an embedder with any supported method
+embedder = AnnEmbed::Embedder.new(
+  method: :umap,       # :umap, :tsne, :largevis, or :diffusion
+  n_components: 2,     # Target dimensions
+  **options           # Method-specific options
+)
+
+# Methods work the same for all algorithms
+result = embedder.fit_transform(data)
+embedder.save("model.bin")
+loaded = AnnEmbed::Embedder.load("model.bin")
+```
+
+### AnnEmbed::SVD
+
+Randomized Singular Value Decomposition for fast linear dimensionality reduction.
+
+```ruby
+# Perform SVD
+u, s, vt = AnnEmbed.svd(matrix, k, n_iter: 2)
+
+# Parameters:
+#   matrix: 2D array of data
+#   k: Number of components to keep
+#   n_iter: Number of iterations for randomized algorithm (default: 2)
+
+# Returns:
+#   u: Left singular vectors (transformed data)
+#   s: Singular values (importance of each component)
+#   vt: Right singular vectors transposed (components)
+
+# Example: Reduce 100×50 matrix to 100×10
+data = Array.new(100) { Array.new(50) { rand } }
+u, s, vt = AnnEmbed.svd(data, 10)
+reduced_data = u  # This is your reduced 100×10 data
+```
 
 ### AnnEmbed::UMAP
 

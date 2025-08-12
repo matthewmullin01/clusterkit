@@ -77,11 +77,24 @@ RSpec.describe AnnEmbed::SVD do
         expect(s).to eq([1.0, 1.0, 1.0])
       end
       
-      it 'currently raises NotImplementedError from Rust' do
-        # This documents the current state - the Rust method is not implemented yet
-        expect {
-          described_class.randomized_svd(simple_matrix, 2)
-        }.to raise_error(NotImplementedError)
+      it 'performs SVD on simple matrix without mocking' do
+        # SVD is now implemented!
+        result = described_class.randomized_svd(simple_matrix, 2)
+        
+        expect(result).to be_a(Array)
+        expect(result.size).to eq(3)  # U, S, V
+        
+        u, s, v = result
+        expect(u).to be_a(Array)
+        expect(s).to be_a(Array) 
+        expect(v).to be_a(Array)
+        
+        # Check dimensions
+        expect(u.size).to eq(3)  # 3 rows (same as input)
+        expect(u.first.size).to eq(2)  # k columns
+        expect(s.size).to eq(2)  # k singular values
+        expect(v.size).to eq(2)  # k rows
+        expect(v.first.size).to eq(2)  # 2 columns (same as input)
       end
     end
     
@@ -135,7 +148,7 @@ RSpec.describe AnnEmbed::SVD do
         flat_array = [1.0, 2.0, 3.0, 4.0]
         expect {
           described_class.randomized_svd(flat_array, 2)
-        }.to raise_error(NotImplementedError)  # Currently not implemented
+        }.to raise_error(TypeError)  # Not a 2D array
       end
     end
     
@@ -143,7 +156,7 @@ RSpec.describe AnnEmbed::SVD do
       it 'handles empty matrix' do
         expect {
           described_class.randomized_svd(empty_matrix, 1)
-        }.to raise_error(NotImplementedError)  # Currently not implemented
+        }.to raise_error(TypeError)  # Empty array causes type error
       end
       
       it 'handles single row matrix' do
