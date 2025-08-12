@@ -25,8 +25,9 @@ module AnnEmbed
   autoload :Preprocessing, "annembed/preprocessing"
   autoload :Silence, "annembed/silence"
   
-  # SVD needs special handling - require it after the extension is loaded
+  # SVD and Clustering need special handling - require them after the extension is loaded
   require_relative "annembed/svd"
+  require_relative "annembed/clustering"
 
   class << self
     # Quick UMAP embedding

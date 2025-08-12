@@ -6,6 +6,7 @@ High-performance dimensionality reduction for Ruby, powered by the [annembed](ht
 
 - **Multiple algorithms**: UMAP, t-SNE, LargeVis, and Diffusion Maps for dimensionality reduction
 - **SVD**: Randomized Singular Value Decomposition for linear dimensionality reduction
+- **Clustering**: K-means clustering with automatic k selection via elbow method
 - **High performance**: Leverages Rust's speed and parallelization
 - **Easy to use**: Simple, scikit-learn-like API
 - **Model persistence**: Save and load trained models
@@ -191,6 +192,77 @@ u, s, vt = AnnEmbed.svd(matrix, k, n_iter: 2)
 data = Array.new(100) { Array.new(50) { rand } }
 u, s, vt = AnnEmbed.svd(data, 10)
 reduced_data = u  # This is your reduced 100×10 data
+```
+
+### AnnEmbed::Clustering
+
+K-means clustering for grouping similar data points.
+
+```ruby
+# Simple clustering
+kmeans = AnnEmbed::Clustering::KMeans.new(k: 3)
+labels = kmeans.fit_predict(data)
+
+# Advanced usage with all options
+kmeans = AnnEmbed::Clustering::KMeans.new(
+  k: 5,              # Number of clusters
+  max_iter: 300,     # Maximum iterations
+  random_seed: 42    # For reproducibility
+)
+
+# Fit the model
+kmeans.fit(data)
+
+# Get cluster assignments
+labels = kmeans.labels
+
+# Get cluster centers
+centers = kmeans.cluster_centers
+
+# Get inertia (sum of squared distances to nearest centroid)
+inertia = kmeans.inertia
+
+# Predict clusters for new data
+new_labels = kmeans.predict(new_data)
+
+# Find optimal k using elbow method
+results = AnnEmbed::Clustering.elbow_method(data, k_range: 2..10)
+# Returns hash: {2 => inertia_k2, 3 => inertia_k3, ...}
+
+# Calculate clustering quality with silhouette score
+score = AnnEmbed::Clustering.silhouette_score(data, labels)
+# Returns value between -1 (poor) and 1 (excellent)
+```
+
+#### Complete Clustering Workflow
+
+```ruby
+require 'annembed'
+
+# 1. Load or generate high-dimensional data
+data = load_your_data()  # e.g., text embeddings, image features
+
+# 2. Reduce dimensions for better clustering
+umap = AnnEmbed::Embedder.new(method: :umap, n_components: 2)
+reduced_data = umap.fit_transform(data)
+
+# 3. Find optimal number of clusters
+elbow_results = AnnEmbed::Clustering.elbow_method(reduced_data, k_range: 2..10)
+puts "Elbow method results:"
+elbow_results.each { |k, inertia| puts "  k=#{k}: #{inertia.round(2)}" }
+
+# 4. Perform clustering with chosen k
+kmeans = AnnEmbed::Clustering::KMeans.new(k: 5, random_seed: 42)
+labels = kmeans.fit_predict(reduced_data)
+
+# 5. Evaluate clustering quality
+silhouette = AnnEmbed::Clustering.silhouette_score(reduced_data, labels)
+puts "Silhouette score: #{silhouette.round(3)}"
+
+# 6. Use clusters for downstream tasks
+labels.each_with_index do |cluster_id, point_idx|
+  puts "Point #{point_idx} belongs to cluster #{cluster_id}"
+end
 ```
 
 ### AnnEmbed::UMAP
