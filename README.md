@@ -5,7 +5,7 @@ High-performance dimensionality reduction for Ruby, powered by the [annembed](ht
 ## Features
 
 - **Multiple algorithms**: UMAP, t-SNE, LargeVis, and Diffusion Maps for dimensionality reduction
-- **SVD**: Randomized Singular Value Decomposition for linear dimensionality reduction
+- **Linear methods**: PCA and SVD for fast linear dimensionality reduction
 - **Clustering**: K-means clustering with automatic k selection via elbow method
 - **High performance**: Leverages Rust's speed and parallelization
 - **Easy to use**: Simple, scikit-learn-like API
@@ -192,6 +192,26 @@ u, s, vt = AnnEmbed.svd(matrix, k, n_iter: 2)
 data = Array.new(100) { Array.new(50) { rand } }
 u, s, vt = AnnEmbed.svd(data, 10)
 reduced_data = u  # This is your reduced 100×10 data
+```
+
+### AnnEmbed::PCA
+
+Principal Component Analysis for linear dimensionality reduction.
+
+```ruby
+# Simple PCA
+pca = AnnEmbed::PCA.new(n_components: 2)
+transformed = pca.fit_transform(data)
+
+# Check explained variance
+puts "Explained variance ratio: #{pca.explained_variance_ratio}"
+puts "Cumulative variance: #{pca.cumulative_explained_variance_ratio}"
+
+# Inverse transform to reconstruct data
+reconstructed = pca.inverse_transform(transformed)
+
+# Module-level convenience method
+transformed = AnnEmbed.pca(data, n_components: 2)
 ```
 
 ### AnnEmbed::Clustering

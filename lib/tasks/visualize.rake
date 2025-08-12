@@ -28,6 +28,12 @@ namespace :annembed do
     umap_data = umap.fit_transform(data)
     puts " done"
     
+    print "Running PCA..."
+    pca = AnnEmbed::PCA.new(n_components: 2)
+    pca_data = pca.fit_transform(data)
+    variance_explained = pca.cumulative_explained_variance_ratio[-1]
+    puts " done (explained variance: #{(variance_explained * 100).round(1)}%)"
+    
     print "Running SVD..."
     u, s, vt = AnnEmbed.svd(data, 2, n_iter: 5)
     svd_data = u
@@ -51,28 +57,36 @@ namespace :annembed do
     kmeans_umap = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
     kmeans_labels_umap = kmeans_umap.fit_predict(umap_data)
     
+    kmeans_pca = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
+    kmeans_labels_pca = kmeans_pca.fit_predict(pca_data)
+    
     kmeans_svd = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
     kmeans_labels_svd = kmeans_svd.fit_predict(svd_data)
     puts " done"
     
     # Calculate metrics
     silhouette_umap = AnnEmbed::Clustering.silhouette_score(umap_data, kmeans_labels_umap)
+    silhouette_pca = AnnEmbed::Clustering.silhouette_score(pca_data, kmeans_labels_pca)
     silhouette_svd = AnnEmbed::Clustering.silhouette_score(svd_data, kmeans_labels_svd)
     
     # Generate HTML
     html = generate_visualization_html(
       data: data,
       umap_data: umap_data,
+      pca_data: pca_data,
       svd_data: svd_data,
       true_labels: true_labels,
       kmeans_labels_umap: kmeans_labels_umap,
+      kmeans_labels_pca: kmeans_labels_pca,
       kmeans_labels_svd: kmeans_labels_svd,
       dataset_name: dataset_name,
       metrics: {
         silhouette_umap: silhouette_umap,
+        silhouette_pca: silhouette_pca,
         silhouette_svd: silhouette_svd,
         optimal_k: optimal_k,
-        elbow_results: elbow_results
+        elbow_results: elbow_results,
+        pca_variance_explained: variance_explained
       }
     )
     
@@ -175,8 +189,8 @@ namespace :annembed do
     [data, labels, "Iris-like Dataset"]
   end
   
-  def generate_visualization_html(data:, umap_data:, svd_data:, true_labels:, 
-                                   kmeans_labels_umap:, kmeans_labels_svd:, 
+  def generate_visualization_html(data:, umap_data:, pca_data:, svd_data:, true_labels:, 
+                                   kmeans_labels_umap:, kmeans_labels_pca:, kmeans_labels_svd:, 
                                    dataset_name:, metrics:)
     <<~HTML
       <!DOCTYPE html>
@@ -230,7 +244,7 @@ namespace :annembed do
               }
               .metrics {
                   display: grid;
-                  grid-template-columns: repeat(3, 1fr);
+                  grid-template-columns: repeat(4, 1fr);
                   gap: 20px;
                   margin-top: 20px;
               }
@@ -286,12 +300,16 @@ namespace :annembed do
                       <div class="metric-label">UMAP + K-means<br>Silhouette Score</div>
                   </div>
                   <div class="metric-card">
+                      <div class="metric-value">#{metrics[:silhouette_pca].round(3)}</div>
+                      <div class="metric-label">PCA + K-means<br>Silhouette Score</div>
+                  </div>
+                  <div class="metric-card">
                       <div class="metric-value">#{metrics[:silhouette_svd].round(3)}</div>
                       <div class="metric-label">SVD + K-means<br>Silhouette Score</div>
                   </div>
                   <div class="metric-card">
-                      <div class="metric-value">#{metrics[:optimal_k]}</div>
-                      <div class="metric-label">Optimal K<br>(Elbow Method)</div>
+                      <div class="metric-value">#{(metrics[:pca_variance_explained] * 100).round(1)}%</div>
+                      <div class="metric-label">PCA Variance<br>Explained</div>
                   </div>
               </div>
           </div>
@@ -299,6 +317,8 @@ namespace :annembed do
           <div class="container">
               <div class="plot" id="umap-true"></div>
               <div class="plot" id="umap-kmeans"></div>
+              <div class="plot" id="pca-true"></div>
+              <div class="plot" id="pca-kmeans"></div>
               <div class="plot" id="svd-true"></div>
               <div class="plot" id="svd-kmeans"></div>
           </div>
@@ -351,6 +371,44 @@ namespace :annembed do
                   title: 'UMAP - K-means Clusters',
                   xaxis: { title: 'UMAP 1' },
                   yaxis: { title: 'UMAP 2' },
+                  height: 400
+              });
+              
+              // PCA with true labels
+              Plotly.newPlot('pca-true', [{
+                  x: #{pca_data.map { |p| p[0] }.to_json},
+                  y: #{pca_data.map { |p| p[1] }.to_json},
+                  mode: 'markers',
+                  marker: {
+                      color: #{true_labels.to_json},
+                      size: 8,
+                      colorscale: colorscale,
+                      showscale: false
+                  },
+                  type: 'scatter'
+              }], {
+                  title: 'PCA - True Labels',
+                  xaxis: { title: 'PC 1' },
+                  yaxis: { title: 'PC 2' },
+                  height: 400
+              });
+              
+              // PCA with K-means labels
+              Plotly.newPlot('pca-kmeans', [{
+                  x: #{pca_data.map { |p| p[0] }.to_json},
+                  y: #{pca_data.map { |p| p[1] }.to_json},
+                  mode: 'markers',
+                  marker: {
+                      color: #{kmeans_labels_pca.to_json},
+                      size: 8,
+                      colorscale: colorscale,
+                      showscale: false
+                  },
+                  type: 'scatter'
+              }], {
+                  title: 'PCA - K-means Clusters',
+                  xaxis: { title: 'PC 1' },
+                  yaxis: { title: 'PC 2' },
                   height: 400
               });
               
