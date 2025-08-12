@@ -149,55 +149,88 @@ RSpec.describe AnnEmbed::Clustering do
     end
   end
 
-  describe 'optimal k detection helper' do
-    # This tests the algorithm we use in the rake task
-    def detect_optimal_k(elbow_results)
-      k_values = elbow_results.keys.sort
-      return 3 if k_values.empty?
-      
-      max_drop = 0
-      optimal_k = k_values.first
-      
-      k_values.each_cons(2) do |k1, k2|
-        drop = elbow_results[k1] - elbow_results[k2]
-        if drop > max_drop
-          max_drop = drop
-          optimal_k = k2  # Use k2 - the value AFTER the big drop
-        end
-      end
-      
-      optimal_k
-    end
-
+  describe '.detect_optimal_k' do
     it 'detects clear elbow at k=3' do
       results = {2 => 1000.0, 3 => 100.0, 4 => 90.0, 5 => 85.0}
-      expect(detect_optimal_k(results)).to eq(3)
+      expect(described_class.detect_optimal_k(results)).to eq(3)
     end
 
     it 'detects elbow at k=4' do
       results = {2 => 500.0, 3 => 400.0, 4 => 100.0, 5 => 95.0}
-      expect(detect_optimal_k(results)).to eq(4)
+      expect(described_class.detect_optimal_k(results)).to eq(4)
     end
 
     it 'handles minimal drops' do
       results = {2 => 100.0, 3 => 95.0, 4 => 93.0, 5 => 92.0}
       # With small drops, it picks the first biggest drop (k=3)
-      expect(detect_optimal_k(results)).to eq(3)
+      expect(described_class.detect_optimal_k(results)).to eq(3)
     end
 
     it 'handles gradual decline without clear elbow' do
       results = {2 => 100.0, 3 => 80.0, 4 => 60.0, 5 => 40.0}
       # Should pick k=3 as it has the first equal drop
-      expect(detect_optimal_k(results)).to eq(3)
+      expect(described_class.detect_optimal_k(results)).to eq(3)
     end
 
-    it 'handles empty results' do
-      expect(detect_optimal_k({})).to eq(3)  # Default fallback
+    it 'handles empty results with default fallback' do
+      expect(described_class.detect_optimal_k({})).to eq(3)  # Default fallback
+    end
+    
+    it 'handles empty results with custom fallback' do
+      expect(described_class.detect_optimal_k({}, fallback_k: 5)).to eq(5)
+    end
+
+    it 'handles nil input' do
+      expect(described_class.detect_optimal_k(nil)).to eq(3)
     end
 
     it 'handles single k value' do
       results = {3 => 100.0}
-      expect(detect_optimal_k(results)).to eq(3)
+      expect(described_class.detect_optimal_k(results)).to eq(3)
+    end
+
+    it 'handles unsorted keys' do
+      results = {5 => 85.0, 2 => 1000.0, 4 => 90.0, 3 => 100.0}
+      expect(described_class.detect_optimal_k(results)).to eq(3)
+    end
+  end
+
+  describe '.optimal_kmeans' do
+    let(:data) do
+      # Generate 3 clear clusters  
+      result = []
+      3.times do |cluster_id|
+        center = Array.new(10) { (rand - 0.5) * 0.3 + cluster_id * 0.3 }
+        20.times do
+          point = center.map { |c| c + (rand - 0.5) * 0.05 }
+          result << point
+        end
+      end
+      result
+    end
+
+    it 'returns optimal k, labels, centroids, and inertia' do
+      optimal_k, labels, centroids, inertia = described_class.optimal_kmeans(data, k_range: 2..5)
+      
+      expect(optimal_k).to be_a(Integer)
+      expect(optimal_k).to be_between(2, 5)
+      
+      expect(labels).to be_a(Array)
+      expect(labels.size).to eq(data.size)
+      expect(labels.uniq.size).to eq(optimal_k)
+      
+      expect(centroids).to be_a(Array)
+      expect(centroids.size).to eq(optimal_k)
+      expect(centroids.first.size).to eq(data.first.size)
+      
+      expect(inertia).to be_a(Float)
+      expect(inertia).to be >= 0
+    end
+
+    it 'finds approximately 3 clusters for 3-cluster data' do
+      optimal_k, _, _, _ = described_class.optimal_kmeans(data, k_range: 2..6)
+      # Should detect 3 clusters (or close to it)
+      expect(optimal_k).to be_between(2, 4)
     end
   end
 end

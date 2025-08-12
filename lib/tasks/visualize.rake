@@ -39,8 +39,8 @@ namespace :annembed do
     # Find optimal k using elbow method
     elbow_results = AnnEmbed::Clustering.elbow_method(umap_data, k_range: 2..6)
     
-    # Use k=3 for this visualization (or detect from elbow)
-    optimal_k = detect_optimal_k(elbow_results)
+    # Use library method to detect optimal k
+    optimal_k = AnnEmbed::Clustering.detect_optimal_k(elbow_results)
     
     puts "Elbow method results:"
     elbow_results.sort.each do |k, inertia|
@@ -173,34 +173,6 @@ namespace :annembed do
     end
     
     [data, labels, "Iris-like Dataset"]
-  end
-  
-  def detect_optimal_k(elbow_results)
-    # Simple elbow detection: find biggest drop in inertia
-    k_values = elbow_results.keys.sort
-    return 3 if k_values.empty?
-    
-    max_drop = 0
-    optimal_k = k_values.first
-    
-    k_values.each_cons(2) do |k1, k2|
-      drop = elbow_results[k1] - elbow_results[k2]
-      if drop > max_drop
-        max_drop = drop
-        optimal_k = k2  # Use k2 - the value AFTER the big drop
-      end
-    end
-    
-    # Also check if the biggest drop happens before k=2
-    # (meaning k=2 might be optimal)
-    if k_values.include?(2) && elbow_results[2]
-      first_drop = elbow_results[k_values.first] - elbow_results[2] if k_values.first < 2
-      if first_drop && first_drop > max_drop
-        optimal_k = 2
-      end
-    end
-    
-    optimal_k
   end
   
   def generate_visualization_html(data:, umap_data:, svd_data:, true_labels:, 

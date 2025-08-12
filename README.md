@@ -229,6 +229,14 @@ new_labels = kmeans.predict(new_data)
 results = AnnEmbed::Clustering.elbow_method(data, k_range: 2..10)
 # Returns hash: {2 => inertia_k2, 3 => inertia_k3, ...}
 
+# Detect optimal k from elbow results
+optimal_k = AnnEmbed::Clustering.detect_optimal_k(results)
+# Returns the k value at the "elbow" of the curve
+
+# Or do it all automatically
+optimal_k, labels, centroids, inertia = AnnEmbed::Clustering.optimal_kmeans(data, k_range: 2..10)
+# Automatically finds optimal k and performs clustering
+
 # Calculate clustering quality with silhouette score
 score = AnnEmbed::Clustering.silhouette_score(data, labels)
 # Returns value between -1 (poor) and 1 (excellent)
@@ -246,14 +254,18 @@ data = load_your_data()  # e.g., text embeddings, image features
 umap = AnnEmbed::Embedder.new(method: :umap, n_components: 2)
 reduced_data = umap.fit_transform(data)
 
-# 3. Find optimal number of clusters
-elbow_results = AnnEmbed::Clustering.elbow_method(reduced_data, k_range: 2..10)
-puts "Elbow method results:"
-elbow_results.each { |k, inertia| puts "  k=#{k}: #{inertia.round(2)}" }
+# 3. Find optimal number of clusters automatically
+optimal_k, labels, centroids, inertia = AnnEmbed::Clustering.optimal_kmeans(
+  reduced_data, 
+  k_range: 2..10
+)
+puts "Found #{optimal_k} clusters with inertia: #{inertia.round(2)}"
 
-# 4. Perform clustering with chosen k
-kmeans = AnnEmbed::Clustering::KMeans.new(k: 5, random_seed: 42)
-labels = kmeans.fit_predict(reduced_data)
+# Or manually with more control:
+# elbow_results = AnnEmbed::Clustering.elbow_method(reduced_data, k_range: 2..10)
+# optimal_k = AnnEmbed::Clustering.detect_optimal_k(elbow_results)
+# kmeans = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
+# labels = kmeans.fit_predict(reduced_data)
 
 # 5. Evaluate clustering quality
 silhouette = AnnEmbed::Clustering.silhouette_score(reduced_data, labels)
