@@ -14,6 +14,7 @@ module AnnEmbed
       # @param max_iter [Integer] Maximum iterations (default: 300)
       # @param random_seed [Integer] Random seed for reproducibility (optional)
       def initialize(k:, max_iter: 300, random_seed: nil)
+        raise ArgumentError, "k must be positive" unless k > 0
         @k = k
         @max_iter = max_iter
         @random_seed = random_seed
@@ -160,7 +161,11 @@ module AnnEmbed
           end
           
           # Calculate silhouette value for this point
-          s = (b - a) / [a, b].max
+          if a == 0.0 && b == 0.0
+            s = 0.0  # When all points are identical
+          else
+            s = (b - a) / [a, b].max
+          end
           silhouette_values << s
         end
         
