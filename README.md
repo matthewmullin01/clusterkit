@@ -38,7 +38,6 @@ Copy and paste this into IRB to try out the main features:
 
 ```ruby
 require 'annembed'
-require 'annembed/svd'  # For SVD functionality
 
 # Generate sample high-dimensional data
 # Imagine this is text embeddings, image features, or any high-dim data
@@ -135,7 +134,6 @@ For convenience, you can also use the simplified API:
 
 ```ruby
 require 'annembed'
-require 'annembed/svd'
 
 # Generate sample data
 data = Array.new(100) { Array.new(50) { rand } }
