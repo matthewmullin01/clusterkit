@@ -25,8 +25,9 @@ module AnnEmbed
   autoload :Preprocessing, "annembed/preprocessing"
   autoload :Silence, "annembed/silence"
   
-  # SVD and Clustering need special handling - require them after the extension is loaded
+  # SVD, PCA and Clustering need special handling - require them after the extension is loaded
   require_relative "annembed/svd"
+  require_relative "annembed/pca"
   require_relative "annembed/clustering"
 
   class << self
