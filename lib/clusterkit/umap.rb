@@ -24,7 +24,7 @@ module ClusterKit
       @random_seed = random_seed
       @nb_grad_batch = nb_grad_batch
       @nb_sampling_by_edge = nb_sampling_by_edge
-      @rust_umap = RustUMAP.new(
+      @rust_umap = ClusterKit::RustUMAP.new(
         n_components: n_components,
         n_neighbors: n_neighbors,
         random_seed: random_seed,
@@ -103,7 +103,7 @@ module ClusterKit
       raise ArgumentError, "File not found: #{path}" unless File.exist?(path)
       
       # Load the Rust model
-      rust_umap = RustUMAP.load_model(path)
+      rust_umap = ClusterKit::RustUMAP.load_model(path)
       
       # Create a new UMAP instance with the loaded model
       instance = allocate

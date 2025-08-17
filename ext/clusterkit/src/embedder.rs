@@ -31,7 +31,7 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     Ok(())
 }
 
-#[magnus::wrap(class = "AnnEmbed::RustUMAP")]
+#[magnus::wrap(class = "ClusterKit::RustUMAP")]
 struct RustUMAP {
     n_components: usize,
     n_neighbors: usize,

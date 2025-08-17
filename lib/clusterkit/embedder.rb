@@ -31,7 +31,7 @@ module ClusterKit
       data_array = prepare_data(data)
       
       result = Silence.maybe_silence do
-        @rust_embedder = RustUMAP.new(@config.to_h)
+        @rust_embedder = ClusterKit::RustUMAP.new(@config.to_h)
         @rust_embedder.fit_transform(data_array)
       end
       @fitted = true
@@ -46,7 +46,7 @@ module ClusterKit
       data_array = prepare_data(data)
       
       Silence.maybe_silence do
-        @rust_embedder = RustUMAP.new(@config.to_h)
+        @rust_embedder = ClusterKit::RustUMAP.new(@config.to_h)
         # RustUMAP doesn't have a separate fit method, so we use fit_transform and discard the result
         @rust_embedder.fit_transform(data_array)
       end
@@ -85,7 +85,7 @@ module ClusterKit
     # @param path [String] File path
     # @return [Embedder] Loaded embedder
     def self.load(path)
-      rust_embedder = RustUMAP.load_model(path)
+      rust_embedder = ClusterKit::RustUMAP.load_model(path)
       embedder = allocate
       embedder.instance_variable_set(:@rust_embedder, rust_embedder)
       embedder.instance_variable_set(:@fitted, true)
