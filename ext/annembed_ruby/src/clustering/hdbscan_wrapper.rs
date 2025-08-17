@@ -42,10 +42,15 @@ pub fn hdbscan_fit(
         eprintln!("Warning: Current hdbscan version only supports Euclidean distance. Using Euclidean.");
     }
     
+    // Adjust parameters to avoid index out of bounds errors
+    // The hdbscan crate has issues when min_samples >= n_samples
+    let adjusted_min_samples = min_samples.min(n_samples.saturating_sub(1)).max(1);
+    let adjusted_min_cluster_size = min_cluster_size.min(n_samples).max(2);
+    
     // Create hyperparameters
     let hyper_params = HdbscanHyperParams::builder()
-        .min_cluster_size(min_cluster_size)
-        .min_samples(min_samples)
+        .min_cluster_size(adjusted_min_cluster_size)
+        .min_samples(adjusted_min_samples)
         .build();
     
     // Create HDBSCAN instance and run clustering
