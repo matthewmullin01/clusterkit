@@ -6,7 +6,9 @@ High-performance dimensionality reduction for Ruby, powered by the [annembed](ht
 
 - **Multiple algorithms**: UMAP, t-SNE, LargeVis, and Diffusion Maps for dimensionality reduction
 - **Linear methods**: PCA and SVD for fast linear dimensionality reduction
-- **Clustering**: K-means clustering with automatic k selection via elbow method
+- **Clustering**: 
+  - K-means clustering with automatic k selection via elbow method
+  - HDBSCAN for density-based clustering with noise detection
 - **High performance**: Leverages Rust's speed and parallelization
 - **Easy to use**: Simple, scikit-learn-like API
 - **Model persistence**: Save and load trained models
@@ -216,6 +218,8 @@ transformed = AnnEmbed.pca(data, n_components: 2)
 
 ### AnnEmbed::Clustering
 
+#### K-means Clustering
+
 K-means clustering for grouping similar data points.
 
 ```ruby
@@ -260,6 +264,65 @@ optimal_k, labels, centroids, inertia = AnnEmbed::Clustering.optimal_kmeans(data
 # Calculate clustering quality with silhouette score
 score = AnnEmbed::Clustering.silhouette_score(data, labels)
 # Returns value between -1 (poor) and 1 (excellent)
+```
+
+#### HDBSCAN Clustering
+
+HDBSCAN (Hierarchical Density-Based Spatial Clustering of Applications with Noise) for density-based clustering with automatic noise detection. Perfect for document clustering and topic modeling.
+
+```ruby
+# Simple HDBSCAN clustering
+hdbscan = AnnEmbed::Clustering::HDBSCAN.new(
+  min_samples: 5,        # Min neighborhood size for density calculation
+  min_cluster_size: 10   # Minimum size to form a cluster
+)
+
+# Fit and get labels (-1 indicates noise/outliers)
+labels = hdbscan.fit_predict(data)
+
+# Advanced usage
+hdbscan = AnnEmbed::Clustering::HDBSCAN.new(
+  min_samples: 5,
+  min_cluster_size: 10,
+  metric: 'euclidean'    # Distance metric (currently only euclidean supported)
+)
+
+hdbscan.fit(data)
+
+# Get results
+labels = hdbscan.labels                    # Cluster assignments (-1 for noise)
+probabilities = hdbscan.probabilities      # Cluster membership strengths
+outlier_scores = hdbscan.outlier_scores    # Outlier scores for each point
+
+# Analyze clustering
+n_clusters = hdbscan.n_clusters            # Number of clusters found
+n_noise = hdbscan.n_noise_points           # Number of noise points
+noise_ratio = hdbscan.noise_ratio          # Fraction of points as noise
+cluster_indices = hdbscan.cluster_indices  # Hash of cluster_id => [point_indices]
+
+# Module-level convenience method
+result = AnnEmbed::Clustering.hdbscan(data, 
+  min_samples: 5, 
+  min_cluster_size: 10
+)
+# Returns: {labels:, probabilities:, outlier_scores:, n_clusters:, noise_ratio:}
+
+# Document clustering example (typical workflow)
+# 1. Reduce high-dimensional embeddings with UMAP
+embeddings_768d = # ... your document embeddings
+umap = AnnEmbed::Umap.new(n_components: 20)
+embeddings_20d = umap.fit_transform(embeddings_768d)
+
+# 2. Apply HDBSCAN to find topics
+hdbscan = AnnEmbed::Clustering::HDBSCAN.new(
+  min_samples: 5,
+  min_cluster_size: 15  # Adjust based on your dataset
+)
+topics = hdbscan.fit_predict(embeddings_20d)
+
+# 3. Analyze results
+puts "Found #{hdbscan.n_clusters} topics"
+puts "#{hdbscan.n_noise_points} documents unclustered (#{(hdbscan.noise_ratio * 100).round(1)}%)"
 ```
 
 #### Complete Clustering Workflow

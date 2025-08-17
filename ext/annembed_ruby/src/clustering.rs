@@ -2,6 +2,8 @@ use magnus::{function, prelude::*, Error, Value, RArray, Integer, TryConvert};
 use ndarray::{Array1, Array2, ArrayView1, Axis};
 use rand::prelude::*;
 
+mod hdbscan_wrapper;
+
 pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     let clustering_module = parent.define_module("Clustering")?;
     
@@ -14,6 +16,9 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
         "kmeans_predict_rust",
         function!(kmeans_predict, 2),
     )?;
+    
+    // Initialize HDBSCAN functions
+    hdbscan_wrapper::init(&clustering_module)?;
     
     Ok(())
 }

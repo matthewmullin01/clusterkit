@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'annembed_ruby'
+require_relative 'clustering/hdbscan'
 
 module AnnEmbed
   # Module for clustering algorithms
