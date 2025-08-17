@@ -368,7 +368,7 @@ RSpec.describe ClusterKit::Clustering::HDBSCAN do
     
     it 'works with UMAP reduced data' do
       # Reduce dimensions
-      umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
+      umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5)
       reduced = umap.fit_transform(high_dim_data)
       
       # Apply HDBSCAN
@@ -382,7 +382,7 @@ RSpec.describe ClusterKit::Clustering::HDBSCAN do
     
     it 'works with PCA reduced data' do
       # Reduce dimensions with PCA
-      pca = ClusterKit::PCA.new(n_components: 5)
+      pca = ClusterKit::Dimensionality::PCA.new(n_components: 5)
       reduced = pca.fit_transform(high_dim_data)
       
       # Apply HDBSCAN

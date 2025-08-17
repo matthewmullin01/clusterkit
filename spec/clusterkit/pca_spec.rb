@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe ClusterKit::PCA do
+RSpec.describe ClusterKit::Dimensionality::PCA do
   describe '#initialize' do
     it 'creates a PCA instance with default parameters' do
       pca = described_class.new

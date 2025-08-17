@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'annembed_ruby'
+require_relative 'clusterkit'
 require_relative 'clustering/hdbscan'
 
 module ClusterKit
@@ -74,6 +74,61 @@ module ClusterKit
         @inertia
       end
 
+      # Class methods for K-means specific utilities
+      class << self
+        # Find optimal number of clusters using elbow method
+        # @param data [Array] 2D array of data points
+        # @param k_range [Range] Range of k values to try
+        # @param max_iter [Integer] Maximum iterations per k
+        # @return [Hash] Mapping of k to inertia values
+        def elbow_method(data, k_range: 2..10, max_iter: 300)
+          results = {}
+          
+          k_range.each do |k|
+            kmeans = new(k: k, max_iter: max_iter)
+            kmeans.fit(data)
+            results[k] = kmeans.inertia
+          end
+          
+          results
+        end
+
+        # Detect optimal k from elbow method results
+        # @param elbow_results [Hash] Mapping of k to inertia values (from elbow_method)
+        # @param fallback_k [Integer] Default k to return if detection fails (default: 3)
+        # @return [Integer] Optimal number of clusters
+        def detect_optimal_k(elbow_results, fallback_k: 3)
+          return fallback_k if elbow_results.nil? || elbow_results.empty?
+          
+          k_values = elbow_results.keys.sort
+          return k_values.first if k_values.size == 1
+          
+          # Find the k with the largest drop in inertia
+          max_drop = 0
+          optimal_k = k_values.first
+          
+          k_values.each_cons(2) do |k1, k2|
+            drop = elbow_results[k1] - elbow_results[k2]
+            if drop > max_drop
+              max_drop = drop
+              optimal_k = k2  # Use k after the drop
+            end
+          end
+          
+          optimal_k
+        end
+
+        # Find optimal k and return it
+        # @param data [Array] 2D array of data points
+        # @param k_range [Range] Range of k values to try (default: 2..10)
+        # @param max_iter [Integer] Maximum iterations (default: 300)
+        # @return [Integer] Optimal number of clusters
+        def optimal_k(data, k_range: 2..10, max_iter: 300)
+          elbow_results = elbow_method(data, k_range: k_range, max_iter: max_iter)
+          detect_optimal_k(elbow_results)
+        end
+      end
+
       private
 
       def validate_data(data)
@@ -98,72 +153,9 @@ module ClusterKit
       end
     end
 
-    # Convenience methods at module level
+    # Module-level methods for cross-algorithm functionality
     class << self
-      # Perform K-means clustering
-      # @param data [Array] 2D array of data points
-      # @param k [Integer] Number of clusters
-      # @param max_iter [Integer] Maximum iterations
-      # @return [Array<Array, Array, Float>] labels, centroids, inertia
-      def kmeans(data, k, max_iter: 300)
-        kmeans_rust(data, k, max_iter)
-      end
-
-      # Find optimal number of clusters using elbow method
-      # @param data [Array] 2D array of data points
-      # @param k_range [Range] Range of k values to try
-      # @param max_iter [Integer] Maximum iterations per k
-      # @return [Hash] Mapping of k to inertia values
-      def elbow_method(data, k_range: 2..10, max_iter: 300)
-        results = {}
-        
-        k_range.each do |k|
-          _, _, inertia = kmeans(data, k, max_iter: max_iter)
-          results[k] = inertia
-        end
-        
-        results
-      end
-
-      # Detect optimal k from elbow method results
-      # @param elbow_results [Hash] Mapping of k to inertia values (from elbow_method)
-      # @param fallback_k [Integer] Default k to return if detection fails (default: 3)
-      # @return [Integer] Optimal number of clusters
-      def detect_optimal_k(elbow_results, fallback_k: 3)
-        return fallback_k if elbow_results.nil? || elbow_results.empty?
-        
-        k_values = elbow_results.keys.sort
-        return k_values.first if k_values.size == 1
-        
-        # Find the k with the largest drop in inertia
-        max_drop = 0
-        optimal_k = k_values.first
-        
-        k_values.each_cons(2) do |k1, k2|
-          drop = elbow_results[k1] - elbow_results[k2]
-          if drop > max_drop
-            max_drop = drop
-            optimal_k = k2  # Use k after the drop
-          end
-        end
-        
-        optimal_k
-      end
-
-      # Find optimal k and perform K-means clustering
-      # @param data [Array] 2D array of data points
-      # @param k_range [Range] Range of k values to try (default: 2..10)
-      # @param max_iter [Integer] Maximum iterations (default: 300)
-      # @return [Array<Integer, Array, Array, Float>] optimal_k, labels, centroids, inertia
-      def optimal_kmeans(data, k_range: 2..10, max_iter: 300)
-        elbow_results = elbow_method(data, k_range: k_range, max_iter: max_iter)
-        optimal_k = detect_optimal_k(elbow_results)
-        
-        labels, centroids, inertia = kmeans(data, optimal_k, max_iter: max_iter)
-        [optimal_k, labels, centroids, inertia]
-      end
-
-      # Simple silhouette score calculation
+      # Calculate silhouette score for any clustering result
       # @param data [Array] 2D array of data points
       # @param labels [Array] Cluster labels
       # @return [Float] Mean silhouette coefficient

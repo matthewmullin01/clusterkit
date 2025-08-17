@@ -25,7 +25,8 @@ RSpec.describe 'annembed_ruby extension loading' do
     it 'attempts to load .bundle first on macOS' do
       # On macOS, the extension is compiled as .bundle
       # This test documents that behavior
-      expect(File.extname($LOADED_FEATURES.grep(/annembed_ruby/).first || '')).to match(/\.(bundle|so)/)
+      # The extension was renamed from annembed_ruby to clusterkit
+      expect(File.extname($LOADED_FEATURES.grep(/clusterkit\.(bundle|so)/).first || '')).to match(/\.(bundle|so)/)
     end
     
     it 'has a fallback mechanism for different platforms' do

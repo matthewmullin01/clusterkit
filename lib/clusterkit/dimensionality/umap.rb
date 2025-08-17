@@ -2,11 +2,12 @@
 
 require 'fileutils'
 require 'json'
-require_relative 'configuration'
-require_relative 'silence'
+require_relative '../configuration'
+require_relative '../silence'
 
 module ClusterKit
-  class UMAP
+  module Dimensionality
+    class UMAP
     attr_reader :n_components, :n_neighbors, :random_seed, :nb_grad_batch, :nb_sampling_by_edge
     
     # Initialize a new UMAP instance
@@ -106,7 +107,7 @@ module ClusterKit
       raise ArgumentError, "File not found: #{path}" unless File.exist?(path)
       
       # Load the Rust model
-      rust_umap = ClusterKit::RustUMAP.load_model(path)
+      rust_umap = ::ClusterKit::RustUMAP.load_model(path)
       
       # Create a new UMAP instance with the loaded model
       instance = allocate
@@ -181,18 +182,19 @@ module ClusterKit
       if @n_neighbors > max_neighbors
         adjusted_n_neighbors = [suggested_neighbors, max_neighbors].min
         
-        if ClusterKit.configuration.verbose
+        if ::ClusterKit.configuration.verbose
           warn "UMAP: Adjusted n_neighbors from #{@n_neighbors} to #{adjusted_n_neighbors} for dataset with #{n_samples} samples"
         end
       end
       
-      @rust_umap = ClusterKit::RustUMAP.new({
+      @rust_umap = ::ClusterKit::RustUMAP.new({
         n_components: @n_components,
         n_neighbors: adjusted_n_neighbors,
         random_seed: @random_seed,
         nb_grad_batch: @nb_grad_batch,
         nb_sampling_by_edge: @nb_sampling_by_edge
       })
+    end
     end
   end
 end

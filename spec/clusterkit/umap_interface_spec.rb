@@ -4,7 +4,7 @@ require "spec_helper"
 require "tempfile"
 require "json"
 
-RSpec.describe "ClusterKit::UMAP interface" do
+RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
   # Use real embeddings from fixtures if available, otherwise fall back to structured data
   let(:test_data) do
     if fixtures_available?
@@ -28,15 +28,15 @@ RSpec.describe "ClusterKit::UMAP interface" do
 
   describe "initialization" do
     it "creates a new UMAP instance with default parameters" do
-      umap = ClusterKit::UMAP.new
-      expect(umap).to be_instance_of(ClusterKit::UMAP)
+      umap = ClusterKit::Dimensionality::UMAP.new
+      expect(umap).to be_instance_of(ClusterKit::Dimensionality::UMAP)
       expect(umap.n_components).to eq(2)
       expect(umap.n_neighbors).to eq(15)
       expect(umap.random_seed).to be_nil
     end
 
     it "accepts custom parameters" do
-      umap = ClusterKit::UMAP.new(
+      umap = ClusterKit::Dimensionality::UMAP.new(
         n_components: 3,
         n_neighbors: 10,
         random_seed: 42
@@ -50,7 +50,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
   describe "#fitted?" do
     # Use n_neighbors appropriate for the data size (15 points)
     # Default of 15 neighbors with 15 points causes degenerate behavior
-    let(:umap) { ClusterKit::UMAP.new(n_neighbors: 5) }
+    let(:umap) { ClusterKit::Dimensionality::UMAP.new(n_neighbors: 5) }
 
     it "returns false for unfitted model" do
       expect(umap.fitted?).to be false
@@ -62,14 +62,14 @@ RSpec.describe "ClusterKit::UMAP interface" do
     end
 
     it "returns true after fit_transform" do
-      umap2 = ClusterKit::UMAP.new(n_neighbors: 5)
+      umap2 = ClusterKit::Dimensionality::UMAP.new(n_neighbors: 5)
       umap2.fit_transform(test_data)
       expect(umap2.fitted?).to be true
     end
   end
 
   describe "#fit" do
-    let(:umap) { ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5) }
+    let(:umap) { ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     it "returns self for method chaining" do
       result = umap.fit(test_data)
@@ -89,7 +89,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
   end
 
   describe "#transform" do
-    let(:umap) { ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5) }
+    let(:umap) { ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     context "with unfitted model" do
       it "raises error" do
@@ -126,7 +126,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
   end
 
   describe "#fit_transform" do
-    let(:umap) { ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5) }
+    let(:umap) { ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     it "fits and transforms in one step" do
       result = umap.fit_transform(test_data)
@@ -139,8 +139,8 @@ RSpec.describe "ClusterKit::UMAP interface" do
 
     it "both fit_transform and fit->transform produce valid embeddings" do
       # Use fixed random seed for reproducibility
-      umap1 = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5, random_seed: 42)
-      umap2 = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5, random_seed: 42)
+      umap1 = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5, random_seed: 42)
+      umap2 = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5, random_seed: 42)
 
       # Method 1: fit_transform
       result1 = umap1.fit_transform(test_data)
@@ -178,7 +178,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
   end
 
   describe "model persistence" do
-    let(:umap) { ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5) }
+    let(:umap) { ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5) }
     let(:model_path) { Tempfile.new(['umap_model', '.bin']).path }
 
     after do
@@ -212,7 +212,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
 
     describe ".load" do
       it "raises error for non-existent file" do
-        expect { ClusterKit::UMAP.load("nonexistent.bin") }.to raise_error(ArgumentError, /File not found/)
+        expect { ClusterKit::Dimensionality::UMAP.load("nonexistent.bin") }.to raise_error(ArgumentError, /File not found/)
       end
 
       it "loads saved model" do
@@ -221,9 +221,9 @@ RSpec.describe "ClusterKit::UMAP interface" do
         umap.save(model_path)
 
         # Load
-        loaded_umap = ClusterKit::UMAP.load(model_path)
+        loaded_umap = ClusterKit::Dimensionality::UMAP.load(model_path)
 
-        expect(loaded_umap).to be_instance_of(ClusterKit::UMAP)
+        expect(loaded_umap).to be_instance_of(ClusterKit::Dimensionality::UMAP)
         expect(loaded_umap.fitted?).to be true
       end
 
@@ -233,7 +233,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
         umap.save(model_path)
 
         # Load and transform
-        loaded_umap = ClusterKit::UMAP.load(model_path)
+        loaded_umap = ClusterKit::Dimensionality::UMAP.load(model_path)
         new_result = loaded_umap.transform(new_data)
 
         expect(new_result).to be_instance_of(Array)
@@ -248,7 +248,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
         umap.save(model_path)
 
         # Load and transform
-        loaded_umap = ClusterKit::UMAP.load(model_path)
+        loaded_umap = ClusterKit::Dimensionality::UMAP.load(model_path)
         loaded_transform = loaded_umap.transform(new_data)
 
         # Results should be the same
@@ -272,7 +272,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
 
     describe ".export_data" do
       it "exports data to JSON" do
-        ClusterKit::UMAP.export_data(data, data_path)
+        ClusterKit::Dimensionality::UMAP.export_data(data, data_path)
 
         expect(File.exist?(data_path)).to be true
         content = JSON.parse(File.read(data_path))
@@ -280,7 +280,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
       end
 
       it "creates readable JSON" do
-        ClusterKit::UMAP.export_data(data, data_path)
+        ClusterKit::Dimensionality::UMAP.export_data(data, data_path)
         content = File.read(data_path)
 
         expect(content).to include("\n") # Pretty printed
@@ -291,14 +291,14 @@ RSpec.describe "ClusterKit::UMAP interface" do
     describe ".import_data" do
       it "imports data from JSON" do
         File.write(data_path, JSON.generate(data))
-        imported = ClusterKit::UMAP.import_data(data_path)
+        imported = ClusterKit::Dimensionality::UMAP.import_data(data_path)
 
         expect(imported).to eq(data)
       end
 
       it "handles pretty-printed JSON" do
         File.write(data_path, JSON.pretty_generate(data))
-        imported = ClusterKit::UMAP.import_data(data_path)
+        imported = ClusterKit::Dimensionality::UMAP.import_data(data_path)
 
         expect(imported).to eq(data)
       end
@@ -306,14 +306,14 @@ RSpec.describe "ClusterKit::UMAP interface" do
 
     describe "roundtrip" do
       it "preserves data through export/import" do
-        umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
+        umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5)
         result = umap.fit_transform(test_data)
 
         # Export
-        ClusterKit::UMAP.export_data(result, data_path)
+        ClusterKit::Dimensionality::UMAP.export_data(result, data_path)
 
         # Import
-        imported = ClusterKit::UMAP.import_data(data_path)
+        imported = ClusterKit::Dimensionality::UMAP.import_data(data_path)
 
         # Should be identical
         expect(imported).to eq(result)
@@ -322,7 +322,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
   end
 
   describe "edge cases and error handling" do
-    let(:umap) { ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5) }
+    let(:umap) { ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     it "handles minimum viable dataset" do
       # UMAP needs at least n_neighbors + 1 points
@@ -334,7 +334,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
       end
 
       # Use n_neighbors=3 for 6 data points to avoid degenerate behavior
-      small_umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 3)
+      small_umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 3)
       result = small_umap.fit_transform(min_data)
       expect(result.length).to eq(6)
     end
@@ -374,7 +374,7 @@ RSpec.describe "ClusterKit::UMAP interface" do
         # Load real embeddings with 3 distinct clusters
         clustered_data = load_embedding_fixture('clusters_30')
 
-        umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
+        umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5)
         result = umap.fit_transform(clustered_data)
 
         expect(result).to be_instance_of(Array)

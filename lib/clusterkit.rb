@@ -15,15 +15,21 @@ module ClusterKit
   class ConvergenceError < Error; end
   class InvalidParameterError < Error; end
 
-  # Autoload classes for better performance
+  # Autoload modules
+  autoload :Dimensionality, "clusterkit/dimensionality"
+  autoload :Clustering, "clusterkit/clustering"
+  
+  # Keep old references for now (will be removed)
   autoload :UMAP, "clusterkit/umap"
+  autoload :PCA, "clusterkit/pca"
   autoload :Utils, "clusterkit/utils"
   autoload :Preprocessing, "clusterkit/preprocessing"
   autoload :Silence, "clusterkit/silence"
   
-  # SVD, PCA and Clustering need special handling - require them after the extension is loaded
-  require_relative "clusterkit/svd"
-  require_relative "clusterkit/pca"
+  # Load the extension first
+  require_relative "clusterkit/clusterkit"
+  
+  # Now load the modules that depend on the extension
   require_relative "clusterkit/clustering"
 
   class << self
@@ -32,8 +38,17 @@ module ClusterKit
     # @param n_components [Integer] Number of dimensions in output
     # @return [Array] Embedded data
     def umap(data, n_components: 2, **options)
-      umap = UMAP.new(n_components: n_components, **options)
+      umap = Dimensionality::UMAP.new(n_components: n_components, **options)
       umap.fit_transform(data)
+    end
+    
+    # Quick PCA
+    # @param data [Array] Input data
+    # @param n_components [Integer] Number of dimensions in output
+    # @return [Array] Transformed data
+    def pca(data, n_components: 2)
+      pca = Dimensionality::PCA.new(n_components: n_components)
+      pca.fit_transform(data)
     end
 
     # t-SNE is not yet implemented
@@ -50,12 +65,25 @@ module ClusterKit
       Utils.estimate_intrinsic_dimension(data, k_neighbors: k)
     end
 
-    # Perform randomized SVD
-    # @param matrix [Array, Numo::NArray] Input matrix
+    # Perform SVD
+    # @param matrix [Array] Input matrix
     # @param k [Integer] Number of components
-    # @return [Array<Numo::NArray>] U, S, V matrices
+    # @param n_iter [Integer] Number of iterations for randomized algorithm
+    # @return [Array] U, S, V matrices
     def svd(matrix, k, n_iter: 2)
-      SVD.randomized_svd(matrix, k, n_iter: n_iter)
+      svd = Dimensionality::SVD.new(n_components: k, n_iter: n_iter)
+      svd.fit_transform(matrix)
+    end
+    
+    # Quick K-means with automatic k detection
+    # @param data [Array] Input data
+    # @param k [Integer, nil] Number of clusters (auto-detect if nil)
+    # @param k_range [Range] Range for auto-detection
+    # @return [Array] Cluster labels
+    def kmeans(data, k: nil, k_range: 2..10, **options)
+      k ||= Clustering::KMeans.optimal_k(data, k_range: k_range)
+      kmeans = Clustering::KMeans.new(k: k, **options)
+      kmeans.fit_predict(data)
     end
   end
 end

@@ -2,26 +2,26 @@
 
 require "spec_helper"
 
-RSpec.describe ClusterKit::UMAP do
+RSpec.describe ClusterKit::Dimensionality::UMAP do
   describe "#initialize" do
     it "creates a new UMAP instance with default parameters" do
       umap = described_class.new
-      expect(umap).to be_instance_of(ClusterKit::UMAP)
+      expect(umap).to be_instance_of(ClusterKit::Dimensionality::UMAP)
     end
 
     it "accepts n_components parameter" do
       umap = described_class.new(n_components: 3)
-      expect(umap).to be_instance_of(ClusterKit::UMAP)
+      expect(umap).to be_instance_of(ClusterKit::Dimensionality::UMAP)
     end
 
     it "accepts n_neighbors parameter" do
       umap = described_class.new(n_neighbors: 30)
-      expect(umap).to be_instance_of(ClusterKit::UMAP)
+      expect(umap).to be_instance_of(ClusterKit::Dimensionality::UMAP)
     end
 
     it "accepts random_seed parameter" do
       umap = described_class.new(random_seed: 42)
-      expect(umap).to be_instance_of(ClusterKit::UMAP)
+      expect(umap).to be_instance_of(ClusterKit::Dimensionality::UMAP)
     end
   end
 

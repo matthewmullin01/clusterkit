@@ -55,7 +55,7 @@ RSpec.describe ClusterKit::Silence do
       # When verbose is false, should use silence
       expect(ClusterKit::Silence).to receive(:silence_output).and_call_original
       
-      umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
+      umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5)
       umap.fit(data)
     end
     
@@ -68,7 +68,7 @@ RSpec.describe ClusterKit::Silence do
       
       expect(ClusterKit::Silence).not_to receive(:silence_output)
       
-      umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
+      umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5)
       umap.fit(data)
       
       # Reset configuration

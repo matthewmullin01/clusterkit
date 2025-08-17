@@ -94,13 +94,13 @@ puts "\n1. DIMENSIONALITY REDUCTION:"
 
 # UMAP - Best for preserving both local and global structure
 puts "Running UMAP..."
-umap = ClusterKit::UMAP.new(n_components: 2)
+umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2)
 umap_result = umap.fit_transform(data)
 puts "  ✓ Reduced to #{umap_result.first.size}D: #{umap_result[0..2].map { |p| p.map { |v| v.round(3) } }}"
 
 # PCA - Fast linear reduction, good for finding main variations
 puts "Running PCA..."
-pca = ClusterKit::PCA.new(n_components: 2)
+pca = ClusterKit::Dimensionality::PCA.new(n_components: 2)
 pca_result = pca.fit_transform(data)
 puts "  ✓ Reduced to #{pca_result.first.size}D: #{pca_result[0..2].map { |p| p.map { |v| v.round(3) } }}"
 puts "  ✓ Explained variance: #{(pca.explained_variance_ratio.sum * 100).round(1)}%"
@@ -114,8 +114,8 @@ puts "\n2. CLUSTERING:"
 # K-means - When you know roughly how many clusters to expect
 puts "Running K-means..."
 # First, find optimal k using elbow method
-elbow_scores = ClusterKit::Clustering.elbow_method(umap_result, k_range: 2..6)
-optimal_k = ClusterKit::Clustering.detect_optimal_k(elbow_scores)
+elbow_scores = ClusterKit::Clustering::KMeans.elbow_method(umap_result, k_range: 2..6)
+optimal_k = ClusterKit::Clustering::KMeans.detect_optimal_k(elbow_scores)
 puts "  ✓ Optimal k detected: #{optimal_k}"
 
 kmeans = ClusterKit::Clustering::KMeans.new(k: optimal_k)
@@ -151,13 +151,26 @@ puts "\n✅ All done! Try visualizing with: rake clusterkit:visualize"
 
 ## Detailed Usage
 
+### API Structure
+
+ClusterKit organizes its algorithms into logical modules:
+
+- **`ClusterKit::Dimensionality`** - Algorithms for reducing data dimensions
+  - `UMAP` - Non-linear manifold learning
+  - `PCA` - Principal Component Analysis
+  - `SVD` - Singular Value Decomposition
+
+- **`ClusterKit::Clustering`** - Algorithms for grouping data
+  - `KMeans` - Partition-based clustering
+  - `HDBSCAN` - Density-based clustering with noise detection
+
 ### Dimensionality Reduction
 
 #### UMAP (Uniform Manifold Approximation and Projection)
 
 ```ruby
 # Create UMAP instance
-umap = ClusterKit::UMAP.new(
+umap = ClusterKit::Dimensionality::UMAP.new(
   n_components: 2,      # Target dimensions
   n_neighbors: 15,      # Number of neighbors
   min_dist: 0.1,       # Minimum distance between points
@@ -183,7 +196,7 @@ test_embedded = umap.transform(test_data)
 #### PCA (Principal Component Analysis)
 
 ```ruby
-pca = ClusterKit::PCA.new(n_components: 2)
+pca = ClusterKit::Dimensionality::PCA.new(n_components: 2)
 transformed = pca.fit_transform(data)
 
 # Access explained variance
@@ -198,9 +211,9 @@ reconstructed = pca.inverse_transform(transformed)
 #### SVD (Singular Value Decomposition)
 
 ```ruby
-# Direct SVD decomposition
-# Returns U, S, V matrices where data ≈ U * S * V^T
-u, s, vt = ClusterKit.svd(data, k=10, n_iter: 5)
+# Direct SVD decomposition using the class interface
+svd = ClusterKit::Dimensionality::SVD.new(n_components: 10, n_iter: 5)
+u, s, vt = svd.fit_transform(data)
 
 # U: left singular vectors (documents in LSA)
 # S: singular values (importance of each component)
@@ -214,6 +227,9 @@ puts "Shape of V^T: #{vt.size}x#{vt.first.size}"
 reduced = u.map.with_index do |row, i|
   row.map.with_index { |val, j| val * s[j] }
 end
+
+# Or use the convenience method
+u, s, vt = ClusterKit.svd(data, 10, n_iter: 5)
 ```
 
 
@@ -223,8 +239,8 @@ end
 
 ```ruby
 # Find optimal number of clusters
-elbow_scores = ClusterKit::Clustering.elbow_method(data, k_range: 2..10)
-optimal_k = ClusterKit::Clustering.detect_optimal_k(elbow_scores)
+elbow_scores = ClusterKit::Clustering::KMeans.elbow_method(data, k_range: 2..10)
+optimal_k = ClusterKit::Clustering::KMeans.detect_optimal_k(elbow_scores)
 
 # Cluster with optimal k
 kmeans = ClusterKit::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
@@ -314,7 +330,7 @@ documents = ["text1", "text2", ...]  # Your documents
 # embeddings = get_embeddings(documents)  # e.g., from red-candle
 
 # Step 2: Reduce dimensions for better clustering
-umap = ClusterKit::UMAP.new(n_components: 20, n_neighbors: 15)
+umap = ClusterKit::Dimensionality::UMAP.new(n_components: 20, n_neighbors: 15)
 reduced_embeddings = umap.fit_transform(embeddings)
 
 # Step 3: Find clusters
@@ -338,7 +354,7 @@ end
 umap.save("model.bin")
 
 # Load trained model
-loaded_umap = ClusterKit::UMAP.load("model.bin")
+loaded_umap = ClusterKit::Dimensionality::UMAP.load("model.bin")
 result = loaded_umap.transform(new_data)
 ```
 
@@ -357,7 +373,7 @@ This error occurs when UMAP cannot find enough neighbors for some points. Soluti
 
 1. **Reduce n_neighbors**: Use a smaller value (e.g., 5 instead of 15)
    ```ruby
-   umap = ClusterKit::UMAP.new(n_neighbors: 5)
+   umap = ClusterKit::Dimensionality::UMAP.new(n_neighbors: 5)
    ```
 
 2. **Add structure to your data**: Completely random data may not work well

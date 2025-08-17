@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-RSpec.describe ClusterKit::Clustering do
+RSpec.describe ClusterKit::Clustering::KMeans do
   describe '.elbow_method' do
     context 'with clear clusters' do
       let(:data) do
@@ -195,7 +195,7 @@ RSpec.describe ClusterKit::Clustering do
     end
   end
 
-  describe '.optimal_kmeans' do
+  describe '.optimal_k' do
     let(:data) do
       # Generate 3 clear clusters  
       result = []
@@ -209,28 +209,27 @@ RSpec.describe ClusterKit::Clustering do
       result
     end
 
-    it 'returns optimal k, labels, centroids, and inertia' do
-      optimal_k, labels, centroids, inertia = described_class.optimal_kmeans(data, k_range: 2..5)
+    it 'returns optimal k value' do
+      optimal = described_class.optimal_k(data, k_range: 2..5)
       
-      expect(optimal_k).to be_a(Integer)
-      expect(optimal_k).to be_between(2, 5)
-      
-      expect(labels).to be_a(Array)
-      expect(labels.size).to eq(data.size)
-      expect(labels.uniq.size).to eq(optimal_k)
-      
-      expect(centroids).to be_a(Array)
-      expect(centroids.size).to eq(optimal_k)
-      expect(centroids.first.size).to eq(data.first.size)
-      
-      expect(inertia).to be_a(Float)
-      expect(inertia).to be >= 0
+      expect(optimal).to be_a(Integer)
+      expect(optimal).to be_between(2, 5)
     end
 
     it 'finds approximately 3 clusters for 3-cluster data' do
-      optimal_k, _, _, _ = described_class.optimal_kmeans(data, k_range: 2..6)
+      optimal = described_class.optimal_k(data, k_range: 2..6)
       # Should detect 3 clusters (or close to it)
-      expect(optimal_k).to be_between(2, 4)
+      expect(optimal).to be_between(2, 4)
+    end
+    
+    it 'can be used to create an optimally-configured kmeans' do
+      optimal = described_class.optimal_k(data, k_range: 2..5)
+      kmeans = described_class.new(k: optimal)
+      labels = kmeans.fit_predict(data)
+      
+      expect(labels.uniq.size).to eq(optimal)
+      expect(kmeans.centroids.size).to eq(optimal)
+      expect(kmeans.inertia).to be >= 0
     end
   end
 end

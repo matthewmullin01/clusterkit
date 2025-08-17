@@ -149,33 +149,14 @@ RSpec.describe ClusterKit::Clustering do
       cluster1 + cluster2
     }
     
-    describe '.kmeans' do
-      it 'performs k-means clustering' do
-        labels, centroids, inertia = described_class.kmeans(data, 2)
-        expect(labels).to be_a(Array)
-        expect(labels.size).to eq(data.size)
-        expect(centroids).to be_a(Array)
-        expect(centroids.size).to eq(2)
-        expect(inertia).to be_a(Float)
-      end
-    end
+    # kmeans method removed - use KMeans class directly
     
-    describe '.elbow_method' do
-      it 'calculates inertia for different k values' do
-        results = described_class.elbow_method(data, k_range: 2..4)
-        expect(results).to be_a(Hash)
-        expect(results.keys).to eq([2, 3, 4])
-        expect(results.values).to all(be_a(Float))
-        
-        # Inertia should generally decrease as k increases
-        expect(results[2]).to be >= results[3]
-        expect(results[3]).to be >= results[4]
-      end
-    end
+    # elbow_method moved to KMeans class
     
     describe '.silhouette_score' do
       it 'calculates silhouette score' do
-        labels, _, _ = described_class.kmeans(data, 2)
+        kmeans = ClusterKit::Clustering::KMeans.new(k: 2)
+        labels = kmeans.fit_predict(data)
         score = described_class.silhouette_score(data, labels)
         expect(score).to be_a(Float)
         expect(score).to be_between(-1, 1)
@@ -195,7 +176,7 @@ RSpec.describe ClusterKit::Clustering do
       high_dim_data = 30.times.map { 10.times.map { rand } }
       
       # Reduce dimensions
-      umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
+      umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5)
       reduced = umap.fit_transform(high_dim_data)
       
       # Cluster reduced data

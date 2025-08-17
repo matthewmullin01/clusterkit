@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
-require_relative 'annembed_ruby'
+require_relative '../clusterkit'
 require_relative 'svd'
 
 module ClusterKit
-  # Principal Component Analysis using SVD
-  # PCA is a linear dimensionality reduction technique that finds
-  # the directions of maximum variance in the data
-  class PCA
+  module Dimensionality
+    # Principal Component Analysis using SVD
+    # PCA is a linear dimensionality reduction technique that finds
+    # the directions of maximum variance in the data
+    class PCA
     attr_reader :n_components, :components, :explained_variance, :explained_variance_ratio, :mean
 
     # Initialize PCA
@@ -75,7 +76,7 @@ module ClusterKit
       centered_data = center_data(data, @mean)
       
       # Perform SVD on centered data
-      u, s, vt = ClusterKit.svd(centered_data, @n_components, n_iter: 5)
+      u, s, vt = SVD.randomized_svd(centered_data, @n_components, n_iter: 5)
       
       # Store the principal components (eigenvectors)
       @components = vt
@@ -245,5 +246,6 @@ module ClusterKit
   def self.pca(data, n_components: 2)
     pca = PCA.new(n_components: n_components)
     pca.fit_transform(data)
+    end
   end
 end

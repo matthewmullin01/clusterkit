@@ -137,7 +137,7 @@ RSpec.describe "Additional K-means edge cases and stress tests" do
     end
   end
 
-  describe ClusterKit::Clustering do
+  describe ClusterKit::Clustering::KMeans do
     describe '.elbow_method stress test' do
       it 'handles k_range with single value' do
         data = 20.times.map { [rand, rand] }
@@ -156,6 +156,9 @@ RSpec.describe "Additional K-means edge cases and stress tests" do
       end
     end
 
+  end
+  
+  describe ClusterKit::Clustering do
     describe '.silhouette_score edge cases' do
       it 'handles perfect clustering' do
         # Two perfectly separated clusters
