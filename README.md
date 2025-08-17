@@ -173,11 +173,15 @@ embedder = ClusterKit::Embedder.new(
 embedded = embedder.fit_transform(data)
 
 # Or fit once and transform multiple datasets
+# Example: Split your data into training and test sets
+all_data = Array.new(200) { Array.new(50) { rand } }  # Your full dataset
+training_data = all_data[0...150]   # First 150 samples for training
+test_data = all_data[150..-1]       # Last 50 samples for testing
+
 embedder.fit(training_data)
 test_embedded = embedder.transform(test_data)
 
-# Note: For very small or completely random datasets, you may need to adjust n_neighbors
-# to be smaller than the default 15 (e.g., n_neighbors: 5) to avoid isolated points
+# Note: The library automatically adjusts n_neighbors if it's too large for your dataset
 ```
 
 #### PCA (Principal Component Analysis)
