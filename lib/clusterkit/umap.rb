@@ -24,14 +24,9 @@ module ClusterKit
       @random_seed = random_seed
       @nb_grad_batch = nb_grad_batch
       @nb_sampling_by_edge = nb_sampling_by_edge
-      @rust_umap = ClusterKit::RustUMAP.new(
-        n_components: n_components,
-        n_neighbors: n_neighbors,
-        random_seed: random_seed,
-        nb_grad_batch: nb_grad_batch,
-        nb_sampling_by_edge: nb_sampling_by_edge
-      )
       @fitted = false
+      # Don't create RustUMAP yet - will be created in fit/fit_transform with adjusted parameters
+      @rust_umap = nil
     end
     
     # Fit the model to the data (training)
@@ -43,6 +38,10 @@ module ClusterKit
     #       Use fit_transform if you need both training and the transformed data.
     def fit(data)
       validate_input(data)
+      
+      # Create RustUMAP with adjusted parameters if needed
+      create_rust_umap_with_adjusted_params(data)
+      
       # UMAP doesn't separate training from transformation internally,
       # so we call fit_transform but discard the result
       Silence.maybe_silence do
@@ -69,6 +68,10 @@ module ClusterKit
     # @return [Array<Array<Float>>] Transformed data in reduced dimensions
     def fit_transform(data)
       validate_input(data)
+      
+      # Create RustUMAP with adjusted parameters if needed
+      create_rust_umap_with_adjusted_params(data)
+      
       result = Silence.maybe_silence do
         @rust_umap.fit_transform(data)
       end
@@ -160,6 +163,36 @@ module ClusterKit
           end
         end
       end
+    end
+    
+    def create_rust_umap_with_adjusted_params(data)
+      # Only create if not already created
+      return if @rust_umap
+      
+      n_samples = data.size
+      
+      # Automatically adjust n_neighbors if it's too high for the dataset
+      # n_neighbors should be less than n_samples
+      # Use a reasonable default: min(15, n_samples / 4) but at least 2
+      max_neighbors = [n_samples - 1, 2].max  # At least 2, but less than n_samples
+      suggested_neighbors = [[15, n_samples / 4].min.to_i, 2].max
+      
+      adjusted_n_neighbors = @n_neighbors
+      if @n_neighbors > max_neighbors
+        adjusted_n_neighbors = [suggested_neighbors, max_neighbors].min
+        
+        if ClusterKit.configuration.verbose
+          warn "UMAP: Adjusted n_neighbors from #{@n_neighbors} to #{adjusted_n_neighbors} for dataset with #{n_samples} samples"
+        end
+      end
+      
+      @rust_umap = ClusterKit::RustUMAP.new(
+        n_components: @n_components,
+        n_neighbors: adjusted_n_neighbors,
+        random_seed: @random_seed,
+        nb_grad_batch: @nb_grad_batch,
+        nb_sampling_by_edge: @nb_sampling_by_edge
+      )
     end
   end
 end

@@ -30,6 +30,9 @@ module ClusterKit
     def fit_transform(data)
       data_array = prepare_data(data)
       
+      # Automatically adjust n_neighbors if it's too high for the dataset
+      adjust_n_neighbors_for_data_size(data_array)
+      
       result = Silence.maybe_silence do
         @rust_embedder = ClusterKit::RustUMAP.new(@config.to_h)
         @rust_embedder.fit_transform(data_array)
@@ -44,6 +47,9 @@ module ClusterKit
     # @return [self]
     def fit(data)
       data_array = prepare_data(data)
+      
+      # Automatically adjust n_neighbors if it's too high for the dataset
+      adjust_n_neighbors_for_data_size(data_array)
       
       Silence.maybe_silence do
         @rust_embedder = ClusterKit::RustUMAP.new(@config.to_h)
@@ -111,6 +117,27 @@ module ClusterKit
     def load_csv_data(path)
       require "csv"
       CSV.read(path, converters: :numeric)
+    end
+    
+    def adjust_n_neighbors_for_data_size(data_array)
+      n_samples = data_array.size
+      
+      # Only adjust if using UMAP-like methods that use n_neighbors
+      return unless [:umap, :largevis].include?(@method)
+      
+      # n_neighbors should be less than n_samples
+      # Use a reasonable default: min(15, n_samples / 4) but at least 2
+      max_neighbors = [n_samples - 1, 2].max  # At least 2, but less than n_samples
+      suggested_neighbors = [[15, n_samples / 4].min.to_i, 2].max
+      
+      if @config.n_neighbors > max_neighbors
+        old_value = @config.n_neighbors
+        @config.n_neighbors = [suggested_neighbors, max_neighbors].min
+        
+        if ClusterKit.configuration.verbose
+          warn "Adjusted n_neighbors from #{old_value} to #{@config.n_neighbors} for dataset with #{n_samples} samples"
+        end
+      end
     end
   end
 end
