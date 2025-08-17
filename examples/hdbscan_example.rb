@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
-require 'annembed'
+require 'clusterkit'
 
 # Helper method for the example
 class Array
@@ -77,7 +77,7 @@ puts "  - 15 mixed/off-topic articles"
 
 # Apply HDBSCAN clustering
 puts "\nApplying HDBSCAN clustering..."
-hdbscan = AnnEmbed::Clustering::HDBSCAN.new(
+hdbscan = ClusterKit::Clustering::HDBSCAN.new(
   min_samples: 5,        # Minimum neighborhood size for density estimation
   min_cluster_size: 10   # Minimum cluster size (smaller clusters become noise)
 )
@@ -127,7 +127,7 @@ puts "\n" + "=" * 50
 puts "Alternative: Module-level method"
 puts "-" * 30
 
-result = AnnEmbed::Clustering.hdbscan(
+result = ClusterKit::Clustering.hdbscan(
   embeddings,
   min_samples: 3,
   min_cluster_size: 8

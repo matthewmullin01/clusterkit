@@ -66,7 +66,7 @@ RSpec.describe "My UMAP test" do
   end
   
   it "processes embeddings" do
-    umap = AnnEmbed::UMAP.new
+    umap = ClusterKit::UMAP.new
     result = umap.fit_transform(test_data)
     # Test will use real embeddings, avoiding hanging issues
   end

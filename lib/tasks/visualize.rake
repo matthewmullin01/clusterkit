@@ -1,11 +1,11 @@
-namespace :annembed do
+namespace :clusterkit do
   desc "Generate interactive visualization comparing dimensionality reduction and clustering methods"
   task :visualize, [:output_file, :dataset, :clustering] do |t, args|
     require 'bundler/setup'
-    require 'annembed'
+    require 'clusterkit'
     require 'json'
     
-    output_file = args[:output_file] || 'annembed_visualization.html'
+    output_file = args[:output_file] || 'clusterkit_visualization.html'
     dataset_type = args[:dataset] || 'clusters'
     clustering_method = args[:clustering] || 'both'  # 'kmeans', 'hdbscan', or 'both'
     
@@ -25,24 +25,24 @@ namespace :annembed do
     
     # Reduce dimensions
     print "Running UMAP..."
-    umap = AnnEmbed::Embedder.new(method: :umap, n_components: 2, n_neighbors: 15, random_seed: 42)
+    umap = ClusterKit::Embedder.new(method: :umap, n_components: 2, n_neighbors: 15, random_seed: 42)
     umap_data = umap.fit_transform(data)
     puts " done"
     
     # Create 20D UMAP for HDBSCAN (better for density-based clustering)
     print "Running UMAP to 20D for HDBSCAN..."
-    umap_20d = AnnEmbed::UMAP.new(n_components: 20, n_neighbors: 15)
+    umap_20d = ClusterKit::UMAP.new(n_components: 20, n_neighbors: 15)
     umap_data_20d = umap_20d.fit_transform(data)
     puts " done"
     
     print "Running PCA..."
-    pca = AnnEmbed::PCA.new(n_components: 2)
+    pca = ClusterKit::PCA.new(n_components: 2)
     pca_data = pca.fit_transform(data)
     variance_explained = pca.cumulative_explained_variance_ratio[-1]
     puts " done (explained variance: #{(variance_explained * 100).round(1)}%)"
     
     print "Running SVD..."
-    u, s, vt = AnnEmbed.svd(data, 2, n_iter: 5)
+    u, s, vt = ClusterKit.svd(data, 2, n_iter: 5)
     svd_data = u
     puts " done"
     
@@ -57,10 +57,10 @@ namespace :annembed do
       print "Clustering with K-means..."
       
       # Find optimal k using elbow method
-      elbow_results = AnnEmbed::Clustering.elbow_method(umap_data, k_range: 2..6)
+      elbow_results = ClusterKit::Clustering.elbow_method(umap_data, k_range: 2..6)
       
       # Use library method to detect optimal k
-      optimal_k = AnnEmbed::Clustering.detect_optimal_k(elbow_results)
+      optimal_k = ClusterKit::Clustering.detect_optimal_k(elbow_results)
       
       puts "\n  Elbow method results:"
       elbow_results.sort.each do |k, inertia|
@@ -68,19 +68,19 @@ namespace :annembed do
       end
       puts "  Detected optimal k: #{optimal_k}"
       
-      kmeans_umap = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
+      kmeans_umap = ClusterKit::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
       kmeans_labels_umap = kmeans_umap.fit_predict(umap_data)
       
-      kmeans_pca = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
+      kmeans_pca = ClusterKit::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
       kmeans_labels_pca = kmeans_pca.fit_predict(pca_data)
       
-      kmeans_svd = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
+      kmeans_svd = ClusterKit::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
       kmeans_labels_svd = kmeans_svd.fit_predict(svd_data)
       
       # Calculate K-means metrics
-      silhouette_umap_kmeans = AnnEmbed::Clustering.silhouette_score(umap_data, kmeans_labels_umap)
-      silhouette_pca_kmeans = AnnEmbed::Clustering.silhouette_score(pca_data, kmeans_labels_pca)
-      silhouette_svd_kmeans = AnnEmbed::Clustering.silhouette_score(svd_data, kmeans_labels_svd)
+      silhouette_umap_kmeans = ClusterKit::Clustering.silhouette_score(umap_data, kmeans_labels_umap)
+      silhouette_pca_kmeans = ClusterKit::Clustering.silhouette_score(pca_data, kmeans_labels_pca)
+      silhouette_svd_kmeans = ClusterKit::Clustering.silhouette_score(svd_data, kmeans_labels_svd)
       
       clustering_results[:kmeans] = {
         labels_umap: kmeans_labels_umap,
@@ -105,26 +105,26 @@ namespace :annembed do
       print "Clustering with HDBSCAN..."
       
       # HDBSCAN on 20D UMAP (better for density-based clustering)
-      hdbscan = AnnEmbed::Clustering::HDBSCAN.new(
+      hdbscan = ClusterKit::Clustering::HDBSCAN.new(
         min_samples: 5,
         min_cluster_size: 10
       )
       hdbscan_labels_20d = hdbscan.fit_predict(umap_data_20d)
       
       # For visualization consistency, also cluster the 2D projections
-      hdbscan_2d = AnnEmbed::Clustering::HDBSCAN.new(
+      hdbscan_2d = ClusterKit::Clustering::HDBSCAN.new(
         min_samples: 5,
         min_cluster_size: 10
       )
       hdbscan_labels_umap = hdbscan_2d.fit_predict(umap_data)
       
-      hdbscan_pca = AnnEmbed::Clustering::HDBSCAN.new(
+      hdbscan_pca = ClusterKit::Clustering::HDBSCAN.new(
         min_samples: 5,
         min_cluster_size: 10
       )
       hdbscan_labels_pca = hdbscan_pca.fit_predict(pca_data)
       
-      hdbscan_svd = AnnEmbed::Clustering::HDBSCAN.new(
+      hdbscan_svd = ClusterKit::Clustering::HDBSCAN.new(
         min_samples: 5,
         min_cluster_size: 10
       )
@@ -144,7 +144,7 @@ namespace :annembed do
         filtered_data_umap = umap_data.select.with_index { |_, i| non_noise_mask_umap[i] }
         filtered_labels_umap = hdbscan_labels_umap.select.with_index { |l, i| non_noise_mask_umap[i] }
         silhouette_umap_hdbscan = filtered_labels_umap.uniq.size > 1 ? 
-          AnnEmbed::Clustering.silhouette_score(filtered_data_umap, filtered_labels_umap) : 0.0
+          ClusterKit::Clustering.silhouette_score(filtered_data_umap, filtered_labels_umap) : 0.0
       else
         silhouette_umap_hdbscan = 0.0
       end
@@ -153,7 +153,7 @@ namespace :annembed do
         filtered_data_pca = pca_data.select.with_index { |_, i| non_noise_mask_pca[i] }
         filtered_labels_pca = hdbscan_labels_pca.select.with_index { |l, i| non_noise_mask_pca[i] }
         silhouette_pca_hdbscan = filtered_labels_pca.uniq.size > 1 ?
-          AnnEmbed::Clustering.silhouette_score(filtered_data_pca, filtered_labels_pca) : 0.0
+          ClusterKit::Clustering.silhouette_score(filtered_data_pca, filtered_labels_pca) : 0.0
       else
         silhouette_pca_hdbscan = 0.0
       end
@@ -162,7 +162,7 @@ namespace :annembed do
         filtered_data_svd = svd_data.select.with_index { |_, i| non_noise_mask_svd[i] }
         filtered_labels_svd = hdbscan_labels_svd.select.with_index { |l, i| non_noise_mask_svd[i] }
         silhouette_svd_hdbscan = filtered_labels_svd.uniq.size > 1 ?
-          AnnEmbed::Clustering.silhouette_score(filtered_data_svd, filtered_labels_svd) : 0.0
+          ClusterKit::Clustering.silhouette_score(filtered_data_svd, filtered_labels_svd) : 0.0
       else
         silhouette_svd_hdbscan = 0.0
       end
@@ -337,7 +337,7 @@ namespace :annembed do
       <!DOCTYPE html>
       <html>
       <head>
-          <title>AnnEmbed Visualization - #{dataset_name}</title>
+          <title>ClusterKit Visualization - #{dataset_name}</title>
           <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
           <style>
               body {

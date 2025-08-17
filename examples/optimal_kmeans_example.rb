@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-require 'annembed'
+require 'clusterkit'
 
 # Generate sample data with 3 natural clusters
 def generate_sample_data
@@ -25,7 +25,7 @@ def generate_sample_data
   data
 end
 
-puts "AnnEmbed Optimal K-means Clustering Example"
+puts "ClusterKit Optimal K-means Clustering Example"
 puts "=" * 50
 
 # Generate data
@@ -36,17 +36,17 @@ puts "\nGenerated #{data.size} data points with 3 natural clusters"
 puts "\nMethod 1: Manual elbow method"
 puts "-" * 30
 
-elbow_results = AnnEmbed::Clustering.elbow_method(data, k_range: 2..8)
+elbow_results = ClusterKit::Clustering.elbow_method(data, k_range: 2..8)
 puts "Elbow method results:"
 elbow_results.sort.each do |k, inertia|
   puts "  k=#{k}: inertia=#{inertia.round(2)}"
 end
 
-optimal_k = AnnEmbed::Clustering.detect_optimal_k(elbow_results)
+optimal_k = ClusterKit::Clustering.detect_optimal_k(elbow_results)
 puts "\nDetected optimal k: #{optimal_k}"
 
 # Perform K-means with optimal k
-labels, centroids, inertia = AnnEmbed::Clustering.kmeans(data, optimal_k)
+labels, centroids, inertia = ClusterKit::Clustering.kmeans(data, optimal_k)
 puts "Final inertia: #{inertia.round(2)}"
 puts "Cluster sizes: #{labels.tally.sort.to_h}"
 
@@ -54,7 +54,7 @@ puts "Cluster sizes: #{labels.tally.sort.to_h}"
 puts "\nMethod 2: Using optimal_kmeans (automatic)"
 puts "-" * 30
 
-optimal_k, labels, centroids, inertia = AnnEmbed::Clustering.optimal_kmeans(data, k_range: 2..8)
+optimal_k, labels, centroids, inertia = ClusterKit::Clustering.optimal_kmeans(data, k_range: 2..8)
 puts "Automatically detected k: #{optimal_k}"
 puts "Final inertia: #{inertia.round(2)}"
 puts "Cluster sizes: #{labels.tally.sort.to_h}"
@@ -64,11 +64,11 @@ puts "\nMethod 3: Using KMeans class"
 puts "-" * 30
 
 # First detect optimal k
-elbow_results = AnnEmbed::Clustering.elbow_method(data, k_range: 2..8)
-optimal_k = AnnEmbed::Clustering.detect_optimal_k(elbow_results)
+elbow_results = ClusterKit::Clustering.elbow_method(data, k_range: 2..8)
+optimal_k = ClusterKit::Clustering.detect_optimal_k(elbow_results)
 
 # Create KMeans instance with optimal k
-kmeans = AnnEmbed::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
+kmeans = ClusterKit::Clustering::KMeans.new(k: optimal_k, random_seed: 42)
 labels = kmeans.fit_predict(data)
 
 puts "K-means with k=#{optimal_k}:"
@@ -82,7 +82,7 @@ kmeans.cluster_centers.each_with_index do |center, i|
 end
 
 # Calculate silhouette score to validate clustering quality
-silhouette = AnnEmbed::Clustering.silhouette_score(data, labels)
+silhouette = ClusterKit::Clustering.silhouette_score(data, labels)
 puts "\nSilhouette score: #{silhouette.round(3)}"
 puts "(Higher is better, range is -1 to 1)"
 
@@ -90,7 +90,7 @@ puts "(Higher is better, range is -1 to 1)"
 puts "\nCustom fallback example:"
 puts "-" * 30
 empty_results = {}
-default_k = AnnEmbed::Clustering.detect_optimal_k(empty_results)
-custom_k = AnnEmbed::Clustering.detect_optimal_k(empty_results, fallback_k: 5)
+default_k = ClusterKit::Clustering.detect_optimal_k(empty_results)
+custom_k = ClusterKit::Clustering.detect_optimal_k(empty_results, fallback_k: 5)
 puts "Default fallback k: #{default_k}"
 puts "Custom fallback k: #{custom_k}"

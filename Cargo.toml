@@ -1,5 +1,5 @@
 [workspace]
-members = ["ext/annembed_ruby"]
+members = ["ext/clusterkit"]
 resolver = "2"
 
 [profile.release]
