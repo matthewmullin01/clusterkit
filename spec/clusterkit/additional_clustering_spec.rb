@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'annembed/clustering'
+require 'clusterkit/clustering'
 
 RSpec.describe "Additional K-means edge cases and stress tests" do
   describe ClusterKit::Clustering::KMeans do

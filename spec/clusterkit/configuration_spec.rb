@@ -47,19 +47,19 @@ RSpec.describe ClusterKit::Configuration do
       end
     end
     
-    context 'with ANNEMBED_VERBOSE environment variable' do
-      it 'respects ANNEMBED_VERBOSE=true' do
-        ENV['ANNEMBED_VERBOSE'] = 'true'
+    context 'with CLUSTERKIT_VERBOSE environment variable' do
+      it 'respects CLUSTERKIT_VERBOSE=true' do
+        ENV['CLUSTERKIT_VERBOSE'] = 'true'
         config = described_class.new
         expect(config.verbose).to be true
-        ENV.delete('ANNEMBED_VERBOSE')
+        ENV.delete('CLUSTERKIT_VERBOSE')
       end
       
-      it 'ignores other values of ANNEMBED_VERBOSE' do
-        ENV['ANNEMBED_VERBOSE'] = 'yes'
+      it 'ignores other values of CLUSTERKIT_VERBOSE' do
+        ENV['CLUSTERKIT_VERBOSE'] = 'yes'
         config = described_class.new
         expect(config.verbose).to be false
-        ENV.delete('ANNEMBED_VERBOSE')
+        ENV.delete('CLUSTERKIT_VERBOSE')
       end
     end
     
@@ -80,12 +80,12 @@ RSpec.describe ClusterKit::Configuration do
     end
     
     context 'with both environment variables' do
-      it 'ANNEMBED_VERBOSE takes precedence over DEBUG' do
-        ENV['ANNEMBED_VERBOSE'] = 'true'
+      it 'CLUSTERKIT_VERBOSE takes precedence over DEBUG' do
+        ENV['CLUSTERKIT_VERBOSE'] = 'true'
         ENV['DEBUG'] = 'false'
         config = described_class.new
         expect(config.verbose).to be true
-        ENV.delete('ANNEMBED_VERBOSE')
+        ENV.delete('CLUSTERKIT_VERBOSE')
         ENV.delete('DEBUG')
       end
     end

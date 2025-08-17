@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'annembed/silence'
-require 'annembed/configuration'
+require 'clusterkit/silence'
+require 'clusterkit/configuration'
 
 RSpec.describe ClusterKit::Silence do
   describe '.silence_stream' do

@@ -32,7 +32,7 @@ module ClusterKit
 
     # Conditionally silence based on configuration
     def self.maybe_silence
-      if AnnEmbed.configuration.verbose
+      if ClusterKit.configuration.verbose
         yield
       else
         silence_output { yield }

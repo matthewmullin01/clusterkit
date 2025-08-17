@@ -24,7 +24,7 @@ unless ENV['DISABLE_SIMPLECOV']
 end
 
 require "bundler/setup"
-require "annembed"
+require "clusterkit"
 
 # Only load RSpec configuration if RSpec is available
 if defined?(RSpec)

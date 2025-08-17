@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'annembed/clustering'
-require 'annembed/clustering/hdbscan'
+require 'clusterkit/clustering'
+require 'clusterkit/clustering/hdbscan'
 
 RSpec.describe ClusterKit::Clustering::HDBSCAN do
   # Generate test data with clear clusters and noise

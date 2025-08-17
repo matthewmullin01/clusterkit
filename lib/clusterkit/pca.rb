@@ -29,7 +29,7 @@ module ClusterKit
       
       # Perform SVD on centered data
       # U contains the transformed data, S contains singular values, VT contains components
-      u, s, vt = AnnEmbed.svd(centered_data, @n_components, n_iter: 5)
+      u, s, vt = ClusterKit.svd(centered_data, @n_components, n_iter: 5)
       
       # Store the principal components (eigenvectors)
       @components = vt  # Shape: (n_components, n_features)
@@ -75,7 +75,7 @@ module ClusterKit
       centered_data = center_data(data, @mean)
       
       # Perform SVD on centered data
-      u, s, vt = AnnEmbed.svd(centered_data, @n_components, n_iter: 5)
+      u, s, vt = ClusterKit.svd(centered_data, @n_components, n_iter: 5)
       
       # Store the principal components (eigenvectors)
       @components = vt

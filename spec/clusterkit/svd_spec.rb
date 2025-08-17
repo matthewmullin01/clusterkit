@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'annembed/svd'
+require 'clusterkit/svd'
 
 RSpec.describe ClusterKit::SVD do
   # Sample test matrices

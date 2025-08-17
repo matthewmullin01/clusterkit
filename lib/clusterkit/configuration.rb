@@ -15,10 +15,10 @@ module ClusterKit
 
     def initialize
       # Default to quiet unless explicitly set or debug env var is present
-      @verbose = ENV['ANNEMBED_VERBOSE'] == 'true' || ENV['DEBUG'] == 'true'
+      @verbose = ENV['CLUSTERKIT_VERBOSE'] == 'true' || ENV['DEBUG'] == 'true'
     end
   end
 end
 
 # Initialize default configuration
-AnnEmbed.configure
+ClusterKit.configure

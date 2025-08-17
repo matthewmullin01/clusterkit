@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'annembed/utils'
+require 'clusterkit/utils'
 
 RSpec.describe ClusterKit::Utils do
   # Sample test data
