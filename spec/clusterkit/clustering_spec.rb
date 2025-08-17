@@ -195,7 +195,7 @@ RSpec.describe ClusterKit::Clustering do
       high_dim_data = 30.times.map { 10.times.map { rand } }
       
       # Reduce dimensions
-      umap = ClusterKit::Embedder.new(method: :umap, n_components: 2)
+      umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
       reduced = umap.fit_transform(high_dim_data)
       
       # Cluster reduced data
@@ -207,22 +207,7 @@ RSpec.describe ClusterKit::Clustering do
       expect(labels.uniq.size).to be <= 3
     end
     
-    it 'works with t-SNE reduced data' do
-      # Generate high-dimensional data
-      high_dim_data = 30.times.map { 10.times.map { rand } }
-      
-      # Reduce dimensions
-      tsne = ClusterKit::Embedder.new(method: :tsne, n_components: 2)
-      reduced = tsne.fit_transform(high_dim_data)
-      
-      # Cluster reduced data
-      kmeans = ClusterKit::Clustering::KMeans.new(k: 3)
-      labels = kmeans.fit_predict(reduced)
-      
-      expect(labels).to be_a(Array)
-      expect(labels.size).to eq(30)
-      expect(labels.uniq.size).to be <= 3
-    end
+    # t-SNE is no longer supported - removed test
     
     it 'works with SVD reduced data' do
       # Generate high-dimensional data

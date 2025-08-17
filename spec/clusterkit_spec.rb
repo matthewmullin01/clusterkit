@@ -3,16 +3,7 @@
 require 'spec_helper'
 
 RSpec.describe ClusterKit do
-  describe 'module constants' do
-    it 'defines METHODS constant' do
-      expect(ClusterKit::METHODS).to be_a(Array)
-      expect(ClusterKit::METHODS).to include(:umap, :tsne, :largevis, :diffusion)
-    end
-    
-    it 'has frozen METHODS array' do
-      expect(ClusterKit::METHODS).to be_frozen
-    end
-  end
+  # No more METHODS constant since we only support UMAP directly
   
   describe 'error classes' do
     it 'defines Error as StandardError subclass' do
@@ -41,18 +32,8 @@ RSpec.describe ClusterKit do
       expect(defined?(ClusterKit::UMAP)).to eq('constant')
     end
     
-    it 'autoloads Config' do
-      expect(defined?(ClusterKit::Config)).to eq('constant')
-    end
-    
     it 'autoloads Silence' do
       expect(defined?(ClusterKit::Silence)).to eq('constant')
-    end
-    
-    # Don't force load other classes that might not be implemented yet
-    it 'has Embedder defined or autoloaded' do
-      # Embedder might already be loaded or still autoloaded
-      expect(defined?(ClusterKit::Embedder) || ClusterKit.autoload?(:Embedder)).to be_truthy
     end
     
     it 'has SVD defined or autoloaded' do
@@ -94,48 +75,44 @@ RSpec.describe ClusterKit do
         expect(ClusterKit).to respond_to(:umap)
       end
       
-      it 'creates an Embedder with umap method' do
-        mock_embedder = instance_double(ClusterKit::Embedder)
-        allow(ClusterKit::Embedder).to receive(:new).with(
-          method: :umap, 
+      it 'creates a UMAP instance' do
+        mock_umap = instance_double(ClusterKit::UMAP)
+        allow(ClusterKit::UMAP).to receive(:new).with(
           n_components: 2
-        ).and_return(mock_embedder)
-        allow(mock_embedder).to receive(:fit_transform).and_return([[0.1, 0.2]])
+        ).and_return(mock_umap)
+        allow(mock_umap).to receive(:fit_transform).and_return([[0.1, 0.2]])
         
         result = ClusterKit.umap(test_data)
         
         expect(result).to eq([[0.1, 0.2]])
-        expect(ClusterKit::Embedder).to have_received(:new).with(method: :umap, n_components: 2)
-        expect(mock_embedder).to have_received(:fit_transform).with(test_data)
+        expect(ClusterKit::UMAP).to have_received(:new).with(n_components: 2)
+        expect(mock_umap).to have_received(:fit_transform).with(test_data)
       end
       
       it 'accepts n_components parameter' do
-        mock_embedder = instance_double(ClusterKit::Embedder)
-        allow(ClusterKit::Embedder).to receive(:new).with(
-          method: :umap, 
+        mock_umap = instance_double(ClusterKit::UMAP)
+        allow(ClusterKit::UMAP).to receive(:new).with(
           n_components: 3
-        ).and_return(mock_embedder)
-        allow(mock_embedder).to receive(:fit_transform).and_return([[0.1, 0.2, 0.3]])
+        ).and_return(mock_umap)
+        allow(mock_umap).to receive(:fit_transform).and_return([[0.1, 0.2, 0.3]])
         
         ClusterKit.umap(test_data, n_components: 3)
         
-        expect(ClusterKit::Embedder).to have_received(:new).with(method: :umap, n_components: 3)
+        expect(ClusterKit::UMAP).to have_received(:new).with(n_components: 3)
       end
       
-      it 'passes additional options to Embedder' do
-        mock_embedder = instance_double(ClusterKit::Embedder)
-        allow(ClusterKit::Embedder).to receive(:new).with(
-          method: :umap, 
+      it 'passes additional options to UMAP' do
+        mock_umap = instance_double(ClusterKit::UMAP)
+        allow(ClusterKit::UMAP).to receive(:new).with(
           n_components: 2,
           n_neighbors: 15,
           min_dist: 0.1
-        ).and_return(mock_embedder)
-        allow(mock_embedder).to receive(:fit_transform).and_return([])
+        ).and_return(mock_umap)
+        allow(mock_umap).to receive(:fit_transform).and_return([])
         
         ClusterKit.umap(test_data, n_neighbors: 15, min_dist: 0.1)
         
-        expect(ClusterKit::Embedder).to have_received(:new).with(
-          method: :umap, 
+        expect(ClusterKit::UMAP).to have_received(:new).with(
           n_components: 2, 
           n_neighbors: 15, 
           min_dist: 0.1
@@ -148,51 +125,10 @@ RSpec.describe ClusterKit do
         expect(ClusterKit).to respond_to(:tsne)
       end
       
-      it 'creates an Embedder with tsne method' do
-        mock_embedder = instance_double(ClusterKit::Embedder)
-        allow(ClusterKit::Embedder).to receive(:new).with(
-          method: :tsne, 
-          n_components: 2
-        ).and_return(mock_embedder)
-        allow(mock_embedder).to receive(:fit_transform).and_return([[0.1, 0.2]])
-        
-        result = ClusterKit.tsne(test_data)
-        
-        expect(result).to eq([[0.1, 0.2]])
-        expect(ClusterKit::Embedder).to have_received(:new).with(method: :tsne, n_components: 2)
-        expect(mock_embedder).to have_received(:fit_transform).with(test_data)
-      end
-      
-      it 'accepts n_components parameter' do
-        mock_embedder = instance_double(ClusterKit::Embedder)
-        allow(ClusterKit::Embedder).to receive(:new).with(
-          method: :tsne, 
-          n_components: 3
-        ).and_return(mock_embedder)
-        allow(mock_embedder).to receive(:fit_transform).and_return([[0.1, 0.2, 0.3]])
-        
-        ClusterKit.tsne(test_data, n_components: 3)
-        
-        expect(ClusterKit::Embedder).to have_received(:new).with(method: :tsne, n_components: 3)
-      end
-      
-      it 'passes additional options to Embedder' do
-        mock_embedder = instance_double(ClusterKit::Embedder)
-        allow(ClusterKit::Embedder).to receive(:new).with(
-          method: :tsne, 
-          n_components: 2,
-          perplexity: 30.0,
-          learning_rate: 200.0
-        ).and_return(mock_embedder)
-        allow(mock_embedder).to receive(:fit_transform).and_return([])
-        
-        ClusterKit.tsne(test_data, perplexity: 30.0, learning_rate: 200.0)
-        
-        expect(ClusterKit::Embedder).to have_received(:new).with(
-          method: :tsne, 
-          n_components: 2, 
-          perplexity: 30.0, 
-          learning_rate: 200.0
+      it 'raises NotImplementedError' do
+        expect { ClusterKit.tsne(test_data) }.to raise_error(
+          NotImplementedError, 
+          /t-SNE is not yet implemented/
         )
       end
     end

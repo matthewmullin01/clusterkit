@@ -13,11 +13,8 @@ This gem would not be possible without these foundational libraries. Please cons
 
 ## Features
 
-- **Multiple Dimensionality Reduction Algorithms**:
-  - UMAP (Uniform Manifold Approximation and Projection)
-  - t-SNE (t-Distributed Stochastic Neighbor Embedding)
-  - LargeVis
-  - Diffusion Maps
+- **Dimensionality Reduction Algorithms**:
+  - UMAP (Uniform Manifold Approximation and Projection) - powered by annembed
   - PCA (Principal Component Analysis)
   - SVD (Singular Value Decomposition)
 
@@ -97,7 +94,7 @@ puts "\n1. DIMENSIONALITY REDUCTION:"
 
 # UMAP - Best for preserving both local and global structure
 puts "Running UMAP..."
-umap = ClusterKit::Embedder.new(method: :umap, n_components: 2)
+umap = ClusterKit::UMAP.new(n_components: 2)
 umap_result = umap.fit_transform(data)
 puts "  ✓ Reduced to #{umap_result.first.size}D: #{umap_result[0..2].map { |p| p.map { |v| v.round(3) } }}"
 
@@ -159,9 +156,8 @@ puts "\n✅ All done! Try visualizing with: rake clusterkit:visualize"
 #### UMAP (Uniform Manifold Approximation and Projection)
 
 ```ruby
-# Create embedder with UMAP
-embedder = ClusterKit::Embedder.new(
-  method: :umap,
+# Create UMAP instance
+umap = ClusterKit::UMAP.new(
   n_components: 2,      # Target dimensions
   n_neighbors: 15,      # Number of neighbors
   min_dist: 0.1,       # Minimum distance between points
@@ -170,7 +166,7 @@ embedder = ClusterKit::Embedder.new(
 )
 
 # Fit and transform data
-embedded = embedder.fit_transform(data)
+embedded = umap.fit_transform(data)
 
 # Or fit once and transform multiple datasets
 # Example: Split your data into training and test sets
@@ -178,8 +174,8 @@ all_data = Array.new(200) { Array.new(50) { rand } }  # Your full dataset
 training_data = all_data[0...150]   # First 150 samples for training
 test_data = all_data[150..-1]       # Last 50 samples for testing
 
-embedder.fit(training_data)
-test_embedded = embedder.transform(test_data)
+umap.fit(training_data)
+test_embedded = umap.transform(test_data)
 
 # Note: The library automatically adjusts n_neighbors if it's too large for your dataset
 ```
@@ -198,21 +194,6 @@ puts "Cumulative explained variance: #{pca.cumulative_explained_variance_ratio}"
 reconstructed = pca.inverse_transform(transformed)
 ```
 
-#### t-SNE (t-Distributed Stochastic Neighbor Embedding)
-
-```ruby
-# t-SNE for non-linear dimensionality reduction
-# Best for visualization, preserves local structure
-embedder = ClusterKit::Embedder.new(
-  method: :tsne,
-  n_components: 2,      # Usually 2 or 3 for visualization
-  perplexity: 30.0,     # Balance between local and global structure (5-50)
-  random_seed: 42
-)
-
-tsne_result = embedder.fit_transform(data)
-# Note: t-SNE doesn't support transform() on new data - use fit_transform only
-```
 
 #### SVD (Singular Value Decomposition)
 
@@ -235,37 +216,6 @@ reduced = u.map.with_index do |row, i|
 end
 ```
 
-#### LargeVis
-
-```ruby
-# LargeVis for large-scale visualization
-# Efficient for very large datasets
-embedder = ClusterKit::Embedder.new(
-  method: :largevis,
-  n_components: 2,
-  n_neighbors: 150,     # More neighbors for large datasets
-  n_epochs: 5,          # Number of optimization epochs
-  random_seed: 42
-)
-
-largevis_result = embedder.fit_transform(large_dataset)
-```
-
-#### Diffusion Maps
-
-```ruby
-# Diffusion Maps for manifold learning
-# Good for discovering intrinsic geometry
-embedder = ClusterKit::Embedder.new(
-  method: :diffusion,
-  n_components: 2,
-  n_neighbors: 30,
-  alpha: 0.5,           # Diffusion parameter
-  random_seed: 42
-)
-
-diffusion_result = embedder.fit_transform(data)
-```
 
 ### Clustering
 
@@ -334,11 +284,8 @@ This creates an interactive HTML file with:
 | Algorithm | Best For | Pros | Cons |
 |-----------|----------|------|------|
 | **UMAP** | General purpose, preserving both local and global structure | Fast, scalable, supports transform() | Requires tuning parameters |
-| **t-SNE** | Visualization, revealing clusters | Excellent for finding local patterns | Slow on large data, no transform() |
 | **PCA** | Linear relationships, feature extraction | Very fast, interpretable, deterministic | Only captures linear relationships |
 | **SVD** | Text analysis (LSA), recommendation systems | Memory efficient, good for sparse data | Only linear relationships |
-| **LargeVis** | Very large datasets (>100k points) | Scales well, faster than t-SNE | Less refined than UMAP |
-| **Diffusion Maps** | Non-linear manifold data | Robust to noise, reveals geometry | Computationally intensive |
 
 ### Clustering
 
@@ -353,7 +300,7 @@ This creates an interactive HTML file with:
 - **Image Clustering**: PCA (50D) → K-means
 - **Customer Segmentation**: UMAP (10D) → K-means with elbow method
 - **Anomaly Detection**: UMAP (5D) → HDBSCAN (outliers are noise points)
-- **Visualization**: UMAP or t-SNE (2D) → visual inspection
+- **Visualization**: UMAP (2D) or PCA (2D) → visual inspection
 
 ## Advanced Examples
 
@@ -388,11 +335,11 @@ end
 
 ```ruby
 # Save trained model
-embedder.save("model.bin")
+umap.save("model.bin")
 
 # Load trained model
-loaded_embedder = ClusterKit::Embedder.load("model.bin")
-result = loaded_embedder.transform(new_data)
+loaded_umap = ClusterKit::UMAP.load("model.bin")
+result = loaded_umap.transform(new_data)
 ```
 
 ## Performance Tips
@@ -410,7 +357,7 @@ This error occurs when UMAP cannot find enough neighbors for some points. Soluti
 
 1. **Reduce n_neighbors**: Use a smaller value (e.g., 5 instead of 15)
    ```ruby
-   embedder = ClusterKit::Embedder.new(method: :umap, n_neighbors: 5)
+   umap = ClusterKit::UMAP.new(n_neighbors: 5)
    ```
 
 2. **Add structure to your data**: Completely random data may not work well
@@ -425,7 +372,6 @@ This error occurs when UMAP cannot find enough neighbors for some points. Soluti
 
 - Process in batches for datasets > 100k points
 - Use PCA to reduce dimensions before UMAP
-- Consider using LargeVis instead of UMAP for very large datasets
 
 ### Installation issues
 

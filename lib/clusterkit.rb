@@ -9,8 +9,6 @@ require_relative "clusterkit/configuration"
 module ClusterKit
   class Error < StandardError; end
 
-  # Available embedding methods
-  METHODS = %i[umap tsne largevis diffusion].freeze
 
   # Core error classes
   class DimensionError < Error; end
@@ -19,8 +17,6 @@ module ClusterKit
 
   # Autoload classes for better performance
   autoload :UMAP, "clusterkit/umap"
-  autoload :Embedder, "clusterkit/embedder"
-  autoload :Config, "clusterkit/config"
   autoload :Utils, "clusterkit/utils"
   autoload :Preprocessing, "clusterkit/preprocessing"
   autoload :Silence, "clusterkit/silence"
@@ -32,21 +28,18 @@ module ClusterKit
 
   class << self
     # Quick UMAP embedding
-    # @param data [Array] Input data (or Numo::NArray if available)
+    # @param data [Array] Input data
     # @param n_components [Integer] Number of dimensions in output
-    # @return [Array] Embedded data (or Numo::NArray if Numo is loaded)
+    # @return [Array] Embedded data
     def umap(data, n_components: 2, **options)
-      embedder = Embedder.new(method: :umap, n_components: n_components, **options)
-      embedder.fit_transform(data)
+      umap = UMAP.new(n_components: n_components, **options)
+      umap.fit_transform(data)
     end
 
-    # Quick t-SNE embedding
-    # @param data [Array, Numo::NArray] Input data
-    # @param n_components [Integer] Number of dimensions in output
-    # @return [Numo::NArray] Embedded data
+    # t-SNE is not yet implemented
+    # @deprecated Not implemented - use UMAP instead
     def tsne(data, n_components: 2, **options)
-      embedder = Embedder.new(method: :tsne, n_components: n_components, **options)
-      embedder.fit_transform(data)
+      raise NotImplementedError, "t-SNE is not yet implemented. Please use UMAP instead, which provides similar dimensionality reduction capabilities."
     end
 
     # Estimate intrinsic dimension of data

@@ -186,13 +186,13 @@ module ClusterKit
         end
       end
       
-      @rust_umap = ClusterKit::RustUMAP.new(
+      @rust_umap = ClusterKit::RustUMAP.new({
         n_components: @n_components,
         n_neighbors: adjusted_n_neighbors,
         random_seed: @random_seed,
         nb_grad_batch: @nb_grad_batch,
         nb_sampling_by_edge: @nb_sampling_by_edge
-      )
+      })
     end
   end
 end

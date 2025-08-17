@@ -11,7 +11,14 @@ RSpec.describe ClusterKit::Clustering::HDBSCAN do
     cluster1 = 20.times.map { [rand * 2, rand * 2] }          # Cluster around (1, 1)
     cluster2 = 20.times.map { [rand * 2 + 5, rand * 2 + 5] }  # Cluster around (6, 6)
     cluster3 = 20.times.map { [rand * 2 + 10, rand * 2] }     # Cluster around (11, 1)
-    noise = 5.times.map { [rand * 15, rand * 10] }            # Random noise points
+    # Spread noise points more widely to ensure they're detected as noise
+    noise = [
+      [20, 20],  # Far outlier
+      [-5, -5],  # Far outlier
+      [15, 15],  # Far outlier
+      [8, -3],   # Isolated point
+      [3, 10]    # Isolated point
+    ]
     cluster1 + cluster2 + cluster3 + noise
   }
   
@@ -361,7 +368,7 @@ RSpec.describe ClusterKit::Clustering::HDBSCAN do
     
     it 'works with UMAP reduced data' do
       # Reduce dimensions
-      umap = ClusterKit::Embedder.new(method: :umap, n_components: 2)
+      umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
       reduced = umap.fit_transform(high_dim_data)
       
       # Apply HDBSCAN

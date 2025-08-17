@@ -25,7 +25,7 @@ namespace :clusterkit do
     
     # Reduce dimensions
     print "Running UMAP..."
-    umap = ClusterKit::Embedder.new(method: :umap, n_components: 2, n_neighbors: 15, random_seed: 42)
+    umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 15, random_seed: 42)
     umap_data = umap.fit_transform(data)
     puts " done"
     
