@@ -15,13 +15,11 @@ module ClusterKit
   class ConvergenceError < Error; end
   class InvalidParameterError < Error; end
 
-  # Autoload modules
-  autoload :Dimensionality, "clusterkit/dimensionality"
-  autoload :Clustering, "clusterkit/clustering"
+  # Load modules - can't use autoload with require_relative path issues
+  require_relative "clusterkit/dimensionality"
+  require_relative "clusterkit/clustering"
   
-  # Keep old references for now (will be removed)
-  autoload :UMAP, "clusterkit/umap"
-  autoload :PCA, "clusterkit/pca"
+  # Autoload utilities
   autoload :Utils, "clusterkit/utils"
   autoload :Preprocessing, "clusterkit/preprocessing"
   autoload :Silence, "clusterkit/silence"

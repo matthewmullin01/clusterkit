@@ -3,10 +3,10 @@
 module ClusterKit
   # Module for dimensionality reduction algorithms
   module Dimensionality
-    # Autoload classes for better performance
-    autoload :UMAP, "clusterkit/dimensionality/umap"
-    autoload :PCA, "clusterkit/dimensionality/pca"
-    autoload :SVD, "clusterkit/dimensionality/svd"
+    # Load classes - can't use autoload with require issues
+    require_relative "dimensionality/umap"
+    require_relative "dimensionality/pca"
+    require_relative "dimensionality/svd"
     
     # Module-level evaluation methods
     

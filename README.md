@@ -61,7 +61,7 @@ Or install it yourself as:
 
 ## Quick Start - Interactive Example
 
-Copy and paste this into IRB to try out the main features:
+Copy and paste this **entire block** into IRB to try out the main features (including the srand line for reproducible results):
 
 ```ruby
 require 'clusterkit'
@@ -70,21 +70,26 @@ require 'clusterkit'
 # This simulates real-world data like text embeddings or image features
 puts "Creating sample data: 100 points in 50 dimensions with 3 clusters"
 
+# Use a fixed seed for reproducibility in this example
+# Important: Random data without structure can cause UMAP errors
+srand(42)
+
 # Create data with some inherent structure (3 clusters)
+# Using better separated clusters to avoid UMAP convergence issues
 data = []
 3.times do |cluster|
-  # Each cluster has a different center
-  center = Array.new(50) { rand * 0.3 + cluster * 0.3 }
+  # Each cluster has a different center, well-separated
+  center = Array.new(50) { rand * 0.1 + cluster * 2.0 }
   
-  # Add 33 points around each center with some noise
+  # Add 33 points around each center with controlled noise
   33.times do
-    point = center.map { |c| c + (rand - 0.5) * 0.2 }
+    point = center.map { |c| c + (rand - 0.5) * 0.3 }
     data << point
   end
 end
 
 # Add one more point to make it 100
-data << Array.new(50) { rand }
+data << Array.new(50) { rand * 6.0 }  # Scale to match cluster range
 
 # ============================================================
 # 1. DIMENSIONALITY REDUCTION - Visualize high-dim data in 2D
@@ -94,7 +99,9 @@ puts "\n1. DIMENSIONALITY REDUCTION:"
 
 # UMAP - Best for preserving both local and global structure
 puts "Running UMAP..."
-umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2)
+# Note: Using n_neighbors=5 for better stability with varied data
+# Lower n_neighbors helps avoid "isolated point" errors
+umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5)
 umap_result = umap.fit_transform(data)
 puts "  ✓ Reduced to #{umap_result.first.size}D: #{umap_result[0..2].map { |p| p.map { |v| v.round(3) } }}"
 
@@ -378,11 +385,21 @@ This error occurs when UMAP cannot find enough neighbors for some points. Soluti
 
 2. **Add structure to your data**: Completely random data may not work well
    ```ruby
-   # Instead of: data = Array.new(100) { Array.new(50) { rand } }
-   # Use data with some structure (see Quick Start example)
+   # Bad: Pure random data with no structure
+   data = Array.new(100) { Array.new(50) { rand } }
+   
+   # Good: Data with clusters or patterns (see Quick Start example)
+   # Create clusters with centers and add points around them
    ```
 
 3. **Ensure sufficient data points**: UMAP needs at least n_neighbors + 1 points
+
+4. **Use consistent data generation**: For examples/testing, use a fixed seed
+   ```ruby
+   srand(42)  # Ensures reproducible data generation
+   ```
+
+Note: Real-world embeddings (from text, images, etc.) typically have inherent structure and work better than random data.
 
 ### Memory issues with large datasets
 
