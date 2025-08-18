@@ -14,6 +14,12 @@ module ClusterKit
   class DimensionError < Error; end
   class ConvergenceError < Error; end
   class InvalidParameterError < Error; end
+  
+  # Data-related errors
+  class DataError < Error; end
+  class IsolatedPointError < DataError; end
+  class DisconnectedGraphError < DataError; end
+  class InsufficientDataError < DataError; end
 
   # Load modules - can't use autoload with require_relative path issues
   require_relative "clusterkit/dimensionality"

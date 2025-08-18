@@ -45,11 +45,15 @@ module ClusterKit
       
       # UMAP doesn't separate training from transformation internally,
       # so we call fit_transform but discard the result
-      Silence.maybe_silence do
-        @rust_umap.fit_transform(data)
+      begin
+        Silence.maybe_silence do
+          @rust_umap.fit_transform(data)
+        end
+        @fitted = true
+        self
+      rescue => e
+        handle_umap_error(e, data)
       end
-      @fitted = true
-      self
     end
     
     # Transform data using the fitted model
@@ -73,11 +77,15 @@ module ClusterKit
       # Create RustUMAP with adjusted parameters if needed
       create_rust_umap_with_adjusted_params(data)
       
-      result = Silence.maybe_silence do
-        @rust_umap.fit_transform(data)
+      begin
+        result = Silence.maybe_silence do
+          @rust_umap.fit_transform(data)
+        end
+        @fitted = true
+        result
+      rescue => e
+        handle_umap_error(e, data)
       end
-      @fitted = true
-      result
     end
     
     # Check if the model has been fitted
@@ -137,6 +145,73 @@ module ClusterKit
     
     private
     
+    def handle_umap_error(error, data)
+      error_msg = error.message
+      n_samples = data.size
+      
+      case error_msg
+      when /isolated point/i, /graph will not be connected/i
+        raise ::ClusterKit::IsolatedPointError, <<~MSG
+          UMAP found isolated points in your data that are too far from other points.
+          
+          This typically happens when:
+          • Your data contains outliers that are very different from other points
+          • You're using random data without inherent structure
+          • The n_neighbors parameter (#{@n_neighbors}) is too high for your data distribution
+          
+          Solutions:
+          1. Reduce n_neighbors (try 5 or even 3): UMAP.new(n_neighbors: 5)
+          2. Remove outliers from your data before applying UMAP
+          3. Ensure your data has some structure (not purely random)
+          4. For small datasets (< 50 points), consider using PCA instead
+          
+          Your data: #{n_samples} samples, #{data.first&.size || 0} dimensions
+        MSG
+        
+      when /assertion failed.*box_size/i
+        raise ::ClusterKit::ConvergenceError, <<~MSG
+          UMAP failed to converge due to numerical instability in your data.
+          
+          This typically happens when:
+          • Data points are too spread out or have extreme values
+          • The scale of different features varies wildly
+          • There are duplicate or nearly-duplicate points
+          
+          Solutions:
+          1. Normalize your data first: ClusterKit::Preprocessing.normalize(data)
+          2. Use a smaller n_neighbors value: UMAP.new(n_neighbors: 5)  
+          3. Check for and remove duplicate points
+          4. Scale your data to a reasonable range (e.g., 0-1 or -1 to 1)
+          
+          Your data: #{n_samples} samples, #{data.first&.size || 0} dimensions
+        MSG
+        
+      when /n_neighbors.*larger than/i, /too many neighbors/i
+        raise ::ClusterKit::InvalidParameterError, <<~MSG
+          The n_neighbors parameter (#{@n_neighbors}) is too large for your dataset size (#{n_samples}).
+          
+          UMAP needs n_neighbors to be less than the number of samples.
+          Suggested value: #{[5, (n_samples * 0.1).to_i].max}
+          
+          This should have been auto-adjusted. If you're seeing this error, please report it.
+        MSG
+        
+      else
+        # For unknown errors, still provide some guidance
+        raise ::ClusterKit::Error, <<~MSG
+          UMAP encountered an error: #{error_msg}
+          
+          Common solutions:
+          1. Try reducing n_neighbors (current: #{@n_neighbors})
+          2. Normalize your data first
+          3. Check for NaN or infinite values in your data
+          4. Ensure you have at least 10 data points
+          
+          If this persists, consider using PCA for dimensionality reduction instead.
+        MSG
+      end
+    end
+    
     def validate_input(data)
       raise ArgumentError, "Input must be an array" unless data.is_a?(Array)
       raise ArgumentError, "Input cannot be empty" if data.empty?
@@ -159,7 +234,8 @@ module ClusterKit
             raise ArgumentError, "Element at position [#{i}, #{j}] is not numeric"
           end
           
-          if val.nan? || val.infinite?
+          # Only check for NaN/Infinite on floats
+          if val.is_a?(Float) && (val.nan? || val.infinite?)
             raise ArgumentError, "Element at position [#{i}, #{j}] is NaN or Infinite"
           end
         end
