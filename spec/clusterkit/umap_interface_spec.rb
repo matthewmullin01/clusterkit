@@ -325,18 +325,21 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
     let(:umap) { ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 5) }
 
     it "handles minimum viable dataset" do
-      # UMAP needs at least n_neighbors + 1 points
-      # With only 6 points, we need n_neighbors < 6, preferably 3 or less
-      min_data = if fixtures_available?
-        load_embedding_fixture('minimal_6')
+      # UMAP needs at least 10 points as enforced by validate_input
+      # Try to load a larger fixture, or generate test data
+      min_data = if fixtures_available? && File.exist?(File.join(File.dirname(__FILE__), '../fixtures/embeddings/minimal_10.json'))
+        load_embedding_fixture('minimal_10')
+      elsif fixtures_available? && File.exist?(File.join(File.dirname(__FILE__), '../fixtures/embeddings/tweets_20.json'))
+        # Use a subset of tweets_20 if available
+        load_embedding_fixture('tweets_20').first(10)
       else
-        generate_structured_test_data(6, 10)
+        generate_structured_test_data(10, 10)
       end
 
-      # Use n_neighbors=3 for 6 data points to avoid degenerate behavior
+      # Use n_neighbors=3 for 10 data points to avoid degenerate behavior
       small_umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 3)
       result = small_umap.fit_transform(min_data)
-      expect(result.length).to eq(6)
+      expect(result.length).to eq(10)
     end
 
     it "handles high-dimensional data" do

@@ -59,7 +59,10 @@ RSpec.describe 'ClusterKit error handling' do
     before do
       # Replace the rust UMAP with our mock
       mock_rust = MockRustUMAP.new
+      # Set rust_umap to the mock AND prevent it from being recreated
       umap.instance_variable_set(:@rust_umap, mock_rust)
+      # Mock the creation method to return our mock instead of creating a new one
+      allow(::ClusterKit::RustUMAP).to receive(:new).and_return(mock_rust)
       @mock_rust = mock_rust
     end
     
@@ -232,7 +235,8 @@ RSpec.describe 'ClusterKit error handling' do
     end
     
     it 'accepts integer values' do
-      data = [[1, 2], [3, 4], [5, 6]]
+      data = [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], 
+              [11, 12], [13, 14], [15, 16], [17, 18], [19, 20]]
       # Should not raise an error for integer values
       expect { umap.send(:validate_input, data) }.not_to raise_error
     end

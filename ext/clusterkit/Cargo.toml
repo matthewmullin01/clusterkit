@@ -8,8 +8,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 magnus = { version = "0.6", features = ["embed"] }
-annembed = { git = "https://github.com/jean-pierreBoth/annembed" }
-hnsw_rs = "0.3"
+annembed = { git = "https://github.com/cpetersen/annembed", branch = "random-seed" }
+hnsw_rs = { git = "https://github.com/cpetersen/hnswlib-rs", branch = "random-seed" }
 hdbscan = "0.11"
 ndarray = "0.16"
 num-traits = "0.2"

@@ -40,7 +40,8 @@ module ClusterKit
     def fit(data)
       validate_input(data)
       
-      # Create RustUMAP with adjusted parameters if needed
+      # Always recreate RustUMAP for fit to ensure fresh fit
+      @rust_umap = nil
       create_rust_umap_with_adjusted_params(data)
       
       # UMAP doesn't separate training from transformation internally,
@@ -51,8 +52,11 @@ module ClusterKit
         end
         @fitted = true
         self
-      rescue => e
+      rescue StandardError => e
         handle_umap_error(e, data)
+      rescue => e
+        # Handle fatal errors that aren't StandardError
+        handle_umap_error(RuntimeError.new(e.message), data)
       end
     end
     
@@ -62,7 +66,7 @@ module ClusterKit
     # @raise [RuntimeError] If model hasn't been fitted yet
     def transform(data)
       raise RuntimeError, "Model must be fitted before transform. Call fit or fit_transform first." unless fitted?
-      validate_input(data)
+      validate_input(data, check_min_samples: false)
       Silence.maybe_silence do
         @rust_umap.transform(data)
       end
@@ -74,7 +78,8 @@ module ClusterKit
     def fit_transform(data)
       validate_input(data)
       
-      # Create RustUMAP with adjusted parameters if needed
+      # Always recreate RustUMAP for fit_transform to ensure fresh fit
+      @rust_umap = nil
       create_rust_umap_with_adjusted_params(data)
       
       begin
@@ -83,8 +88,11 @@ module ClusterKit
         end
         @fitted = true
         result
-      rescue => e
+      rescue StandardError => e
         handle_umap_error(e, data)
+      rescue => e
+        # Handle fatal errors that aren't StandardError
+        handle_umap_error(RuntimeError.new(e.message), data)
       end
     end
     
@@ -212,7 +220,7 @@ module ClusterKit
       end
     end
     
-    def validate_input(data)
+    def validate_input(data, check_min_samples: true)
       raise ArgumentError, "Input must be an array" unless data.is_a?(Array)
       raise ArgumentError, "Input cannot be empty" if data.empty?
       
@@ -220,6 +228,10 @@ module ClusterKit
       raise ArgumentError, "Input must be a 2D array (array of arrays)" unless first_row.is_a?(Array)
       
       row_length = first_row.length
+      min_val = Float::INFINITY
+      max_val = -Float::INFINITY
+      
+      # First validate data structure and types
       data.each_with_index do |row, i|
         unless row.is_a?(Array)
           raise ArgumentError, "Row #{i} is not an array"
@@ -238,7 +250,30 @@ module ClusterKit
           if val.is_a?(Float) && (val.nan? || val.infinite?)
             raise ArgumentError, "Element at position [#{i}, #{j}] is NaN or Infinite"
           end
+          
+          # Track data range
+          val_f = val.to_f
+          min_val = val_f if val_f < min_val
+          max_val = val_f if val_f > max_val
         end
+      end
+      
+      # Check for sufficient data points after validating structure (only for fit operations)
+      if check_min_samples && data.size < 10
+        raise ::ClusterKit::InsufficientDataError, <<~MSG
+          UMAP requires at least 10 data points, but only #{data.size} provided.
+          
+          For small datasets, consider:
+          1. Using PCA instead: ClusterKit::Dimensionality::PCA.new(n_components: 2)
+          2. Collecting more data points
+          3. Using simpler visualization methods
+        MSG
+      end
+      
+      # Check for extreme data ranges that might cause numerical issues
+      data_range = max_val - min_val
+      if data_range > 1000
+        warn "WARNING: Large data range detected (#{data_range.round(2)}). Consider normalizing your data to prevent numerical instability."
       end
     end
     

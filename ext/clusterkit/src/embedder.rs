@@ -186,14 +186,29 @@ impl RustUMAP {
         let nb_points = data_f32.len();
         let nb_layer = 16.min((nb_points as f32).ln().trunc() as usize);
 
-        let hnsw = Hnsw::<f32, DistL2>::new(max_nb_connection, nb_points, nb_layer, ef_c, DistL2 {});
+        // Create HNSW with or without seed
+        let hnsw = match self.random_seed {
+            Some(seed) => Hnsw::<f32, DistL2>::new_with_seed(
+                max_nb_connection, nb_points, nb_layer, ef_c, DistL2 {}, seed
+            ),
+            None => Hnsw::<f32, DistL2>::new(
+                max_nb_connection, nb_points, nb_layer, ef_c, DistL2 {}
+            ),
+        };
 
         // Insert data into HNSW
         let data_with_id: Vec<(&Vec<f32>, usize)> = data_f32.iter()
             .enumerate()
             .map(|(i, v)| (v, i))
             .collect();
-        hnsw.parallel_insert(&data_with_id);
+        
+        // Use serial_insert for reproducibility when seed is provided,
+        // parallel_insert for performance when no seed
+        if self.random_seed.is_some() {
+            hnsw.serial_insert(&data_with_id);
+        } else {
+            hnsw.parallel_insert(&data_with_id);
+        }
 
         // Create KGraph from HNSW
         let kgraph: annembed::fromhnsw::kgraph::KGraph<f32> = annembed::fromhnsw::kgraph::kgraph_from_hnsw_all(&hnsw, self.n_neighbors)
@@ -209,11 +224,10 @@ impl RustUMAP {
         embed_params.grad_step = 1.;
         embed_params.nb_sampling_by_edge = self.nb_sampling_by_edge;  // Configurable from Ruby
         embed_params.dmap_init = true;
+        embed_params.random_seed = self.random_seed;  // Pass seed through to annembed
 
         // Create embedder and perform embedding
         let mut embedder = Embedder::new(&kgraph, embed_params);
-
-        // TODO: Figure out how to set random seed in annembed
 
         let embed_result = embedder.embed()
             .map_err(|_| Error::new(magnus::exception::runtime_error(), "Embedding failed"))?;

@@ -178,15 +178,16 @@ ClusterKit organizes its algorithms into logical modules:
 ```ruby
 # Create UMAP instance
 umap = ClusterKit::Dimensionality::UMAP.new(
-  n_components: 2,      # Target dimensions
-  n_neighbors: 15,      # Number of neighbors
-  min_dist: 0.1,       # Minimum distance between points
-  spread: 1.0,         # Effective scale of embedded points
-  random_seed: 42      # For reproducibility
+  n_components: 2,      # Target dimensions (default: 2)
+  n_neighbors: 5,       # Number of neighbors (default: 15, use 5 for small datasets)
+  random_seed: 42,      # For reproducibility (default: nil for best performance)
+  nb_grad_batch: 10,    # Gradient descent batches (default: 10, lower = faster)
+  nb_sampling_by_edge: 8 # Negative samples per edge (default: 8, lower = faster)
 )
 
 # Fit and transform data
 embedded = umap.fit_transform(data)
+# Note: Each call to fit_transform will refit the model
 
 # Or fit once and transform multiple datasets
 # Example: Split your data into training and test sets
@@ -337,7 +338,7 @@ documents = ["text1", "text2", ...]  # Your documents
 # embeddings = get_embeddings(documents)  # e.g., from red-candle
 
 # Step 2: Reduce dimensions for better clustering
-umap = ClusterKit::Dimensionality::UMAP.new(n_components: 20, n_neighbors: 15)
+umap = ClusterKit::Dimensionality::UMAP.new(n_components: 20, n_neighbors: 10)
 reduced_embeddings = umap.fit_transform(embeddings)
 
 # Step 3: Find clusters
@@ -371,6 +372,15 @@ result = loaded_umap.transform(new_data)
 2. **HDBSCAN**: Reduce to 10-50 dimensions with UMAP first for better results
 3. **Memory**: Process in batches for very large datasets
 4. **Speed**: Compile with optimizations: `RUSTFLAGS="-C target-cpu=native" bundle install`
+5. **UMAP Reproducibility vs Performance**: 
+   - **Without `random_seed` (default)**: Uses parallel processing for faster performance (typically 25-35% faster)
+   - **With `random_seed`**: Ensures reproducible results but uses serial processing (slower)
+   - For production workloads where speed matters more than exact reproducibility, omit the `random_seed`
+   - For research or testing where reproducibility is critical, provide a `random_seed`
+
+## Known Issues
+
+See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for any current known issues.
 
 ## Troubleshooting
 
