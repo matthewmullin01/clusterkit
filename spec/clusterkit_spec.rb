@@ -10,21 +10,11 @@ RSpec.describe ClusterKit do
       expect(ClusterKit::Error).to be < StandardError
     end
     
-    it 'defines DimensionError' do
-      expect(ClusterKit::DimensionError).to be < ClusterKit::Error
-    end
-    
-    it 'defines ConvergenceError' do
-      expect(ClusterKit::ConvergenceError).to be < ClusterKit::Error
-    end
-    
-    it 'defines InvalidParameterError' do
-      expect(ClusterKit::InvalidParameterError).to be < ClusterKit::Error
-    end
-    
     it 'allows raising custom errors' do
       expect { raise ClusterKit::DimensionError, "test" }.to raise_error(ClusterKit::DimensionError, "test")
     end
+    
+    # More comprehensive error testing in spec/clusterkit/error_handling_spec.rb
   end
   
   describe 'autoloaded modules and classes' do
