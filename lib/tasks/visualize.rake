@@ -25,18 +25,18 @@ namespace :clusterkit do
     
     # Reduce dimensions
     print "Running UMAP..."
-    umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 15, random_seed: 42)
+    umap = ClusterKit::Dimensionality::UMAP.new(n_components: 2, n_neighbors: 15, random_seed: 42)
     umap_data = umap.fit_transform(data)
     puts " done"
     
     # Create 20D UMAP for HDBSCAN (better for density-based clustering)
     print "Running UMAP to 20D for HDBSCAN..."
-    umap_20d = ClusterKit::UMAP.new(n_components: 20, n_neighbors: 15)
+    umap_20d = ClusterKit::Dimensionality::UMAP.new(n_components: 20, n_neighbors: 15, random_seed: 42)
     umap_data_20d = umap_20d.fit_transform(data)
     puts " done"
     
     print "Running PCA..."
-    pca = ClusterKit::PCA.new(n_components: 2)
+    pca = ClusterKit::Dimensionality::PCA.new(n_components: 2)
     pca_data = pca.fit_transform(data)
     variance_explained = pca.cumulative_explained_variance_ratio[-1]
     puts " done (explained variance: #{(variance_explained * 100).round(1)}%)"
@@ -57,10 +57,10 @@ namespace :clusterkit do
       print "Clustering with K-means..."
       
       # Find optimal k using elbow method
-      elbow_results = ClusterKit::Clustering.elbow_method(umap_data, k_range: 2..6)
+      elbow_results = ClusterKit::Clustering::KMeans.elbow_method(umap_data, k_range: 2..6)
       
       # Use library method to detect optimal k
-      optimal_k = ClusterKit::Clustering.detect_optimal_k(elbow_results)
+      optimal_k = ClusterKit::Clustering::KMeans.detect_optimal_k(elbow_results)
       
       puts "\n  Elbow method results:"
       elbow_results.sort.each do |k, inertia|
