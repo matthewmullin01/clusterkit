@@ -175,7 +175,20 @@ ClusterKit organizes its algorithms into logical modules:
 
 #### UMAP (Uniform Manifold Approximation and Projection)
 
+**Important**: UMAP requires data with some structure. Pure random data may fail.
+For testing, create data with patterns (see Quick Start example above).
+
 ```ruby
+# Generate sample data with structure (not pure random)
+data = []
+100.times do |i|
+  # Create points that cluster in groups
+  group = i / 25  # 4 groups
+  base = group * 2.0
+  point = Array.new(50) { |j| base + rand * 0.8 + j * 0.01 }
+  data << point
+end
+
 # Create UMAP instance
 umap = ClusterKit::Dimensionality::UMAP.new(
   n_components: 2,      # Target dimensions (default: 2)
@@ -194,7 +207,15 @@ embedded = umap.fit_transform(data)
 
 # Or fit once and transform multiple datasets
 # Example: Split your data into training and test sets
-all_data = Array.new(200) { Array.new(50) { rand } }  # Your full dataset
+# Note: Using structured data (not pure random) for better UMAP results
+all_data = []
+200.times do |i|
+  # Create data with some structure - points cluster around different regions
+  center = (i / 50) * 2.0  # 4 rough groups
+  point = Array.new(50) { |j| center + rand * 0.5 + j * 0.01 }
+  all_data << point
+end
+
 training_data = all_data[0...150]   # First 150 samples for training
 test_data = all_data[150..-1]       # Last 50 samples for testing
 
