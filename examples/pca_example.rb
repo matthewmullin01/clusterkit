@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-require 'annembed'
+require 'clusterkit'
 
 puts "PCA Example - Dimensionality Reduction and Variance Analysis"
 puts "=" * 60
@@ -43,7 +43,7 @@ puts "\nGenerated #{data.size} samples with #{data.first.size} features"
   puts "\n" + "-" * 40
   puts "PCA with #{n_components} components:"
   
-  pca = AnnEmbed::PCA.new(n_components: n_components)
+  pca = ClusterKit::PCA.new(n_components: n_components)
   transformed = pca.fit_transform(data)
   
   puts "  Transformed shape: #{transformed.size} x #{transformed.first.size}"
@@ -65,7 +65,7 @@ puts "Reconstruction Example:"
 puts "-" * 40
 
 # Use 2 components (should capture most variance)
-pca_2 = AnnEmbed::PCA.new(n_components: 2)
+pca_2 = ClusterKit::PCA.new(n_components: 2)
 compressed = pca_2.fit_transform(data)
 reconstructed = pca_2.inverse_transform(compressed)
 
@@ -101,11 +101,11 @@ puts "PCA vs SVD Comparison:"
 puts "-" * 40
 
 # PCA (with mean centering)
-pca = AnnEmbed::PCA.new(n_components: 2)
+pca = ClusterKit::PCA.new(n_components: 2)
 pca_result = pca.fit_transform(data)
 
 # SVD (without mean centering)
-u, s, vt = AnnEmbed.svd(data, 2)
+u, s, vt = ClusterKit.svd(data, 2)
 svd_result = u
 
 puts "PCA result (first point): #{pca_result[0].map { |v| v.round(3) }}"

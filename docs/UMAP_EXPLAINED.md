@@ -20,7 +20,7 @@ UMAP works similarly: it discovers that your high-dimensional data lies on a low
 points_100d = generate_sphere_surface_in_100d(n_points: 10000)
 
 # UMAP discovers the 2D manifold structure
-reducer = AnnEmbed::UMAP.new(n_components: 2)
+reducer = ClusterKit::UMAP.new(n_components: 2)
 coords_2d = reducer.fit_transform(points_100d)
 
 # coords_2d now contains the "latitude/longitude" equivalent
@@ -184,7 +184,7 @@ random_data = Array.new(1000) { Array.new(100) { rand(-3.0..3.0) } }
 
 ### Essential Parameters
 ```ruby
-umap_model = AnnEmbed::UMAP.new(
+umap_model = ClusterKit::UMAP.new(
   n_components: 2,      # Output dimensions
   n_neighbors: 15,      # Number of neighbors (15-50 typical)
   random_seed: 42       # For reproducibility
@@ -212,7 +212,7 @@ umap_model = AnnEmbed::UMAP.new(
 ### Performance Optimization
 ```ruby
 # For large datasets (>50K points)
-umap_model = AnnEmbed::UMAP.new(
+umap_model = ClusterKit::UMAP.new(
   n_neighbors: 15,
   n_components: 2,
   random_seed: 42
@@ -227,13 +227,13 @@ umap_model = AnnEmbed::UMAP.new(
 embedding = umap_model.fit_transform(data)
 
 # Note: Supervised UMAP (using labels to guide projection)
-# may be available in future versions of annembed-ruby
+# may be available in future versions of clusterkit
 ```
 
 ## Practical Example: Document Embedding Pipeline
 
 ```ruby
-require 'annembed'
+require 'clusterkit'
 require 'candle'
 
 # Typical workflow for document embeddings
@@ -260,7 +260,7 @@ end
 # end
 
 # Dimensionality reduction
-reducer = AnnEmbed::UMAP.new(
+reducer = ClusterKit::UMAP.new(
   n_neighbors: 30,
   n_components: 2,
   random_seed: 42
@@ -305,7 +305,7 @@ new_coords = reducer.transform([new_embedding])
 
 ```ruby
 require 'candle'
-require 'annembed'
+require 'clusterkit'
 
 # Sample documents for clustering
 documents = [
@@ -335,7 +335,7 @@ model = Candle::EmbeddingModel.from_pretrained(
 embeddings = documents.map { |doc| model.embedding(doc).to_a }
 
 # Reduce to 2D for visualization
-umap = AnnEmbed::UMAP.new(
+umap = ClusterKit::UMAP.new(
   n_components: 2,
   n_neighbors: 5,  # Small dataset, use fewer neighbors
   random_seed: 42
@@ -354,7 +354,7 @@ end
 
 # Advanced: Save and load UMAP models for reuse
 umap.save("models/document_umap.model")
-loaded_umap = AnnEmbed::UMAP.load("models/document_umap.model")
+loaded_umap = ClusterKit::UMAP.load("models/document_umap.model")
 ```
 
 ## Summary
