@@ -6,9 +6,9 @@ require "rspec/core/rake_task"
 RSpec::Core::RakeTask.new(:spec)
 
 # Define the Rust extension
-spec = Gem::Specification.load("annembed-ruby.gemspec")
-Rake::ExtensionTask.new("annembed_ruby", spec) do |ext|
-  ext.lib_dir = "lib/annembed"
+spec = Gem::Specification.load("clusterkit.gemspec")
+Rake::ExtensionTask.new("clusterkit", spec) do |ext|
+  ext.lib_dir = "lib/clusterkit"
   ext.source_pattern = "*.{rs,toml}"
   ext.cross_compile = true
   ext.cross_platform = %w[x86-mingw32 x64-mingw32 x86-linux x86_64-linux x86_64-darwin arm64-darwin]
@@ -40,7 +40,7 @@ end
 desc "Open an interactive console with the gem loaded"
 task :console do
   require "irb"
-  require "annembed"
+  require "clusterkit"
   ARGV.clear
   IRB.start
 end
@@ -49,21 +49,21 @@ end
 namespace :rust do
   desc "Run cargo fmt"
   task :fmt do
-    Dir.chdir("ext/annembed_ruby") do
+    Dir.chdir("ext/clusterkit") do
       sh "cargo fmt"
     end
   end
 
   desc "Run cargo clippy"
   task :clippy do
-    Dir.chdir("ext/annembed_ruby") do
+    Dir.chdir("ext/clusterkit") do
       sh "cargo clippy -- -D warnings"
     end
   end
 
   desc "Run cargo test"
   task :test do
-    Dir.chdir("ext/annembed_ruby") do
+    Dir.chdir("ext/clusterkit") do
       sh "cargo test"
     end
   end
@@ -91,6 +91,9 @@ end
 # CI task that runs all checks
 desc "Run all CI checks"
 task ci: ["rust:fmt", "rust:clippy", "compile", "spec", "coverage"]
+
+# Load custom rake tasks
+Dir.glob('lib/tasks/*.rake').each { |r| load r }
 
 # Test fixture generation
 namespace :fixtures do

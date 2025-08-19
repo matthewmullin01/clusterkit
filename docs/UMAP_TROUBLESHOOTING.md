@@ -51,10 +51,10 @@ The bug only occurs with:
 2. **Use default parameters**
    ```ruby
    # Good: Use defaults
-   umap = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 15)
+   umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 15)
    
    # Risky: Small batch parameters
-   umap = AnnEmbed::UMAP.new(
+   umap = ClusterKit::UMAP.new(
      n_components: 2,
      n_neighbors: 15,
      nb_grad_batch: 2,      # Too small - may hang
@@ -153,7 +153,7 @@ As of version 0.2.0, UMAP supports two new parameters for performance tuning:
 Example usage:
 ```ruby
 # Fast but potentially less accurate
-fast_umap = AnnEmbed::UMAP.new(
+fast_umap = ClusterKit::UMAP.new(
   n_components: 2,
   n_neighbors: 15,
   nb_grad_batch: 5,        # Minimum safe value
@@ -161,7 +161,7 @@ fast_umap = AnnEmbed::UMAP.new(
 )
 
 # Slower but more accurate
-accurate_umap = AnnEmbed::UMAP.new(
+accurate_umap = ClusterKit::UMAP.new(
   n_components: 2,
   n_neighbors: 15,
   nb_grad_batch: 15,       # Higher for better quality
@@ -199,7 +199,7 @@ UMAP builds an HNSW graph which can be memory-intensive for large datasets.
 ### 5. Model Persistence Issues
 
 #### Binary Compatibility
-Saved models may not be compatible across different versions of annembed-ruby. Always test loading saved models after upgrading.
+Saved models may not be compatible across different versions of clusterkit. Always test loading saved models after upgrading.
 
 #### File Size
 Model files include both the original training data and embeddings, so they can be large:
@@ -222,7 +222,7 @@ If you're having issues, test with this known working configuration:
 ```ruby
 # Known working test case
 test_data = 30.times.map { 10.times.map { rand * 0.5 + 0.25 } }
-umap = AnnEmbed::UMAP.new(n_components: 2, n_neighbors: 5)
+umap = ClusterKit::UMAP.new(n_components: 2, n_neighbors: 5)
 result = umap.fit_transform(test_data)
 ```
 
@@ -249,7 +249,7 @@ Include in your bug report:
 - Data characteristics (shape, range, variance)
 - Parameters used
 - Console output including the diagnostic messages
-- Ruby and annembed-ruby versions
+- Ruby and clusterkit versions
 
 ## Alternative Solutions
 
@@ -257,7 +257,7 @@ If you continue to experience issues:
 
 1. **Use t-SNE instead** (if 2D visualization is the goal)
    ```ruby
-   embedder = AnnEmbed::Embedder.new(method: :tsne, n_components: 2)
+   embedder = ClusterKit::Embedder.new(method: :tsne, n_components: 2)
    result = embedder.fit_transform(data)
    ```
 

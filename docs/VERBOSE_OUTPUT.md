@@ -1,10 +1,10 @@
 # Controlling Verbose Output
 
-The annembed-ruby gem provides control over the verbose debug output from the underlying Rust library.
+The clusterkit gem provides control over the verbose debug output from the underlying Rust library.
 
 ## Default Behavior
 
-By default, annembed-ruby suppresses the debug output from the Rust library to keep your console clean. This includes messages about quantiles, cross entropy values, and gradient iterations.
+By default, clusterkit suppresses the debug output from the Rust library to keep your console clean. This includes messages about quantiles, cross entropy values, and gradient iterations.
 
 ## Enabling Verbose Output
 
@@ -22,7 +22,7 @@ Or in your Ruby code:
 
 ```ruby
 ENV['ANNEMBED_VERBOSE'] = 'true'
-require 'annembed'
+require 'clusterkit'
 ```
 
 ### 2. Configuration API
@@ -30,19 +30,19 @@ require 'annembed'
 Use the configuration API for programmatic control:
 
 ```ruby
-require 'annembed'
+require 'clusterkit'
 
 # Enable verbose output
-AnnEmbed.configure do |config|
+ClusterKit.configure do |config|
   config.verbose = true
 end
 
 # Your UMAP operations will now show debug output
-umap = AnnEmbed::UMAP.new
+umap = ClusterKit::UMAP.new
 umap.fit_transform(data)
 
 # Disable verbose output
-AnnEmbed.configuration.verbose = false
+ClusterKit.configuration.verbose = false
 ```
 
 ## When to Use Verbose Output

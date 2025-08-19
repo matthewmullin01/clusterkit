@@ -1,7 +1,7 @@
-# CLAUDE.md - annembed-ruby Project Guide
+# CLAUDE.md - clusterkit Project Guide
 
 ## Project Vision
-annembed-ruby brings high-performance dimensionality reduction and embedding algorithms to Ruby by wrapping the annembed Rust crate. This gem is part of the ruby-nlp ecosystem, which aims to provide Ruby developers with native machine learning and NLP capabilities through best-in-breed Rust implementations.
+clusterkit brings high-performance dimensionality reduction and embedding algorithms to Ruby by wrapping the annembed Rust crate. This gem is part of the ruby-nlp ecosystem, which aims to provide Ruby developers with native machine learning and NLP capabilities through best-in-breed Rust implementations.
 
 ## Core Principles
 
