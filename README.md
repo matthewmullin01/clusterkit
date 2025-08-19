@@ -187,7 +187,10 @@ umap = ClusterKit::Dimensionality::UMAP.new(
 
 # Fit and transform data
 embedded = umap.fit_transform(data)
-# Note: Each call to fit_transform will refit the model
+
+# IMPORTANT: Seed behavior
+# - WITH random_seed: Fully reproducible results using serial processing (slower)
+# - WITHOUT random_seed: Faster parallel processing but non-deterministic results
 
 # Or fit once and transform multiple datasets
 # Example: Split your data into training and test sets
@@ -372,15 +375,23 @@ result = loaded_umap.transform(new_data)
 2. **HDBSCAN**: Reduce to 10-50 dimensions with UMAP first for better results
 3. **Memory**: Process in batches for very large datasets
 4. **Speed**: Compile with optimizations: `RUSTFLAGS="-C target-cpu=native" bundle install`
-5. **UMAP Reproducibility vs Performance**: 
-   - **Without `random_seed` (default)**: Uses parallel processing for faster performance (typically 25-35% faster)
-   - **With `random_seed`**: Ensures reproducible results but uses serial processing (slower)
-   - For production workloads where speed matters more than exact reproducibility, omit the `random_seed`
-   - For research or testing where reproducibility is critical, provide a `random_seed`
 
-## Known Issues
+### UMAP Reproducibility vs Performance
 
-See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for any current known issues.
+ClusterKit's UMAP implementation offers two modes:
+
+| Mode | Usage | Performance | Reproducibility |
+|------|-------|-------------|-----------------|
+| **Fast (default)** | `UMAP.new()` | Parallel processing, ~25-35% faster | Non-deterministic |
+| **Reproducible** | `UMAP.new(random_seed: 42)` | Serial processing | Fully deterministic |
+
+**When to use each mode:**
+- **Production/Analysis**: Use default (no seed) for best performance when exact reproducibility isn't critical
+- **Research/Testing**: Use a seed when you need reproducible results for comparisons or debugging
+- **CI/Testing**: Always use a seed to ensure consistent test results
+
+**Note**: The `transform` method is always deterministic once a model is fitted, regardless of seed usage during training.
+
 
 ## Troubleshooting
 
