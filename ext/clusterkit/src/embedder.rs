@@ -223,9 +223,8 @@ impl RustUMAP {
         embed_params.b = 1.;
         embed_params.grad_step = 1.;
         embed_params.nb_sampling_by_edge = self.nb_sampling_by_edge;  // Configurable from Ruby
-        // Disable diffusion map initialization for now due to issues with small datasets
-        // TODO: Fix diffusion map initialization for small datasets
-        embed_params.dmap_init = false;
+        // Enable diffusion map initialization (annembed now has fallback to random if it fails)
+        embed_params.dmap_init = true;
         embed_params.random_seed = self.random_seed;  // Pass seed through to annembed
 
         // Create embedder and perform embedding
