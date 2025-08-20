@@ -62,7 +62,8 @@ RSpec.describe 'ClusterKit error handling' do
       # Set rust_umap to the mock AND prevent it from being recreated
       umap.instance_variable_set(:@rust_umap, mock_rust)
       # Mock the creation method to return our mock instead of creating a new one
-      allow(::ClusterKit::RustUMAP).to receive(:new).and_return(mock_rust)
+      # Access the private constant for testing
+      allow(::ClusterKit.const_get(:RustUMAP)).to receive(:new).and_return(mock_rust)
       @mock_rust = mock_rust
     end
     

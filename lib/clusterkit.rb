@@ -21,20 +21,18 @@ module ClusterKit
   class DisconnectedGraphError < DataError; end
   class InsufficientDataError < DataError; end
 
-  # Load modules - can't use autoload with require_relative path issues
-  require_relative "clusterkit/dimensionality"
-  require_relative "clusterkit/clustering"
-  
   # Autoload utilities
   autoload :Utils, "clusterkit/utils"
   autoload :Preprocessing, "clusterkit/preprocessing"
   autoload :Silence, "clusterkit/silence"
   
-  # Load the extension first
-  require_relative "clusterkit/clusterkit"
-  
-  # Now load the modules that depend on the extension
+  # Load modules that depend on the extension
+  require_relative "clusterkit/dimensionality"
   require_relative "clusterkit/clustering"
+  
+  # Make RustUMAP private - it's an implementation detail
+  # Users should use Dimensionality::UMAP instead
+  private_constant :RustUMAP if const_defined?(:RustUMAP)
 
   class << self
     # Quick UMAP embedding

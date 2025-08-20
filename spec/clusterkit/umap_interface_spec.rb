@@ -185,14 +185,14 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
       File.delete(model_path) if File.exist?(model_path)
     end
 
-    describe "#save" do
+    describe "#save_model" do
       it "raises error for unfitted model" do
-        expect { umap.save(model_path) }.to raise_error(RuntimeError, /No model to save/)
+        expect { umap.save_model(model_path) }.to raise_error(RuntimeError, /No model to save/)
       end
 
       it "saves fitted model" do
         umap.fit(test_data)
-        umap.save(model_path)
+        umap.save_model(model_path)
 
         expect(File.exist?(model_path)).to be true
         expect(File.size(model_path)).to be > 0
@@ -201,7 +201,7 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
       it "creates directory if needed" do
         nested_path = File.join(Dir.tmpdir, "test_umap_#{Time.now.to_i}", "model.bin")
         umap.fit(test_data)
-        umap.save(nested_path)
+        umap.save_model(nested_path)
 
         expect(File.exist?(nested_path)).to be true
 
@@ -210,18 +210,18 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
       end
     end
 
-    describe ".load" do
+    describe ".load_model" do
       it "raises error for non-existent file" do
-        expect { ClusterKit::Dimensionality::UMAP.load("nonexistent.bin") }.to raise_error(ArgumentError, /File not found/)
+        expect { ClusterKit::Dimensionality::UMAP.load_model("nonexistent.bin") }.to raise_error(ArgumentError, /File not found/)
       end
 
       it "loads saved model" do
         # Train and save
         umap.fit_transform(test_data)
-        umap.save(model_path)
+        umap.save_model(model_path)
 
         # Load
-        loaded_umap = ClusterKit::Dimensionality::UMAP.load(model_path)
+        loaded_umap = ClusterKit::Dimensionality::UMAP.load_model(model_path)
 
         expect(loaded_umap).to be_instance_of(ClusterKit::Dimensionality::UMAP)
         expect(loaded_umap.fitted?).to be true
@@ -230,10 +230,10 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
       it "loaded model can transform new data" do
         # Train and save
         original_result = umap.fit_transform(test_data)
-        umap.save(model_path)
+        umap.save_model(model_path)
 
         # Load and transform
-        loaded_umap = ClusterKit::Dimensionality::UMAP.load(model_path)
+        loaded_umap = ClusterKit::Dimensionality::UMAP.load_model(model_path)
         new_result = loaded_umap.transform(new_data)
 
         expect(new_result).to be_instance_of(Array)
@@ -245,10 +245,10 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
         # Train and save
         umap.fit(test_data)
         original_transform = umap.transform(new_data)
-        umap.save(model_path)
+        umap.save_model(model_path)
 
         # Load and transform
-        loaded_umap = ClusterKit::Dimensionality::UMAP.load(model_path)
+        loaded_umap = ClusterKit::Dimensionality::UMAP.load_model(model_path)
         loaded_transform = loaded_umap.transform(new_data)
 
         # Results should be the same

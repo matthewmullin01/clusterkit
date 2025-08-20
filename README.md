@@ -38,6 +38,22 @@ This gem would not be possible without these foundational libraries. Please cons
   - Comparison of different algorithms
   - Built-in rake tasks for quick experimentation
 
+## API Structure
+
+ClusterKit organizes its functionality into clear modules:
+
+- **`ClusterKit::Dimensionality`** - All dimensionality reduction algorithms
+  - `ClusterKit::Dimensionality::UMAP` - UMAP implementation
+  - `ClusterKit::Dimensionality::PCA` - PCA implementation  
+  - `ClusterKit::Dimensionality::SVD` - SVD implementation
+- **`ClusterKit::Clustering`** - All clustering algorithms
+  - `ClusterKit::Clustering::KMeans` - K-means clustering
+  - `ClusterKit::Clustering::HDBSCAN` - HDBSCAN clustering
+- **`ClusterKit::Utils`** - Utility functions
+- **`ClusterKit::Preprocessing`** - Data preprocessing tools
+
+All user-facing classes are in these modules. Implementation details are kept private.
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -221,6 +237,15 @@ test_data = all_data[150..-1]       # Last 50 samples for testing
 
 umap.fit(training_data)
 test_embedded = umap.transform(test_data)
+
+# Save and load fitted models
+umap.save_model("umap_model.bin")                  # Save the fitted model
+loaded_umap = ClusterKit::Dimensionality::UMAP.load_model("umap_model.bin")  # Load it later
+new_data_embedded = loaded_umap.transform(new_data)  # Use loaded model for new data
+
+# Save and load transformed data (useful for caching results)
+ClusterKit::Dimensionality::UMAP.save_data(embedded, "embeddings.json")
+cached_embeddings = ClusterKit::Dimensionality::UMAP.load_data("embeddings.json")
 
 # Note: The library automatically adjusts n_neighbors if it's too large for your dataset
 ```
