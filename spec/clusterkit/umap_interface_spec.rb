@@ -272,7 +272,7 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
 
     describe ".export_data" do
       it "exports data to JSON" do
-        ClusterKit::Dimensionality::UMAP.export_data(data, data_path)
+        ClusterKit::Dimensionality::UMAP.save_data(data, data_path)
 
         expect(File.exist?(data_path)).to be true
         content = JSON.parse(File.read(data_path))
@@ -280,7 +280,7 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
       end
 
       it "creates readable JSON" do
-        ClusterKit::Dimensionality::UMAP.export_data(data, data_path)
+        ClusterKit::Dimensionality::UMAP.save_data(data, data_path)
         content = File.read(data_path)
 
         expect(content).to include("\n") # Pretty printed
@@ -291,14 +291,14 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
     describe ".import_data" do
       it "imports data from JSON" do
         File.write(data_path, JSON.generate(data))
-        imported = ClusterKit::Dimensionality::UMAP.import_data(data_path)
+        imported = ClusterKit::Dimensionality::UMAP.load_data(data_path)
 
         expect(imported).to eq(data)
       end
 
       it "handles pretty-printed JSON" do
         File.write(data_path, JSON.pretty_generate(data))
-        imported = ClusterKit::Dimensionality::UMAP.import_data(data_path)
+        imported = ClusterKit::Dimensionality::UMAP.load_data(data_path)
 
         expect(imported).to eq(data)
       end
@@ -310,10 +310,10 @@ RSpec.describe "ClusterKit::Dimensionality::UMAP interface" do
         result = umap.fit_transform(test_data)
 
         # Export
-        ClusterKit::Dimensionality::UMAP.export_data(result, data_path)
+        ClusterKit::Dimensionality::UMAP.save_data(result, data_path)
 
         # Import
-        imported = ClusterKit::Dimensionality::UMAP.import_data(data_path)
+        imported = ClusterKit::Dimensionality::UMAP.load_data(data_path)
 
         # Should be identical
         expect(imported).to eq(result)
