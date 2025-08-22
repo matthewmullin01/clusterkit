@@ -423,7 +423,7 @@ search_index = ClusterKit::HNSW.new(
 # Add all documents
 documents.each_with_index do |doc, i|
   search_index.add_item(
-    embeddings[i], 
+    embeddings[i],
     label: i,
     metadata: { title: doc[:title], url: doc[:url] }
   )
@@ -433,7 +433,7 @@ end
 def search(query, index, k: 10)
   query_embedding = generate_embedding(query)
   results = index.search_with_metadata(query_embedding, k: k)
-  
+
   results.map do |result|
     {
       title: result[:metadata]['title'],
