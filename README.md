@@ -350,6 +350,9 @@ This creates an interactive HTML file with:
 - Performance metrics
 - Interactive Plotly.js charts
 
+<img src="/docs/assets/visualization.png" alt="rake clusterkit:visualize">
+
+
 ## Choosing the Right Algorithm
 
 ### Dimensionality Reduction
