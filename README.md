@@ -459,7 +459,7 @@ puts "  ✓ Loaded index works: #{test_results}"
 
 puts "\n✅ HNSW demo complete!"
 puts "\nTry your own queries by running:"
-puts "query_embedding = embedding_model.embed('your search query')"
+puts "query_embedding = embedding_model.embedding('your search query').first.to_a"
 puts "results = index.search_with_metadata(query_embedding, k: 5)"
 ```
 

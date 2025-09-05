@@ -153,7 +153,7 @@ impl HnswIndex {
         
         // Get metadata if provided
         let metadata: Option<HashMap<String, String>> = if let Some(v) = kwargs.delete(Symbol::new("metadata"))? {
-            parse_metadata(v).ok()
+            Some(parse_metadata(v)?)
         } else {
             None
         };
@@ -358,13 +358,13 @@ impl HnswIndex {
                 result.aset(Symbol::new("label"), RString::new(&item_metadata.label))?;
                 result.aset(Symbol::new("distance"), Float::from_f64(neighbor.distance as f64))?;
                 
+                let meta_hash = RHash::new();
                 if let Some(ref meta) = item_metadata.metadata {
-                    let meta_hash = RHash::new();
                     for (key, value) in meta {
                         meta_hash.aset(RString::new(key), RString::new(value))?;
                     }
-                    result.aset(Symbol::new("metadata"), meta_hash)?;
                 }
+                result.aset(Symbol::new("metadata"), meta_hash)?;
                 
                 results.push(result)?;
             }
@@ -572,9 +572,18 @@ fn parse_metadata(value: Value) -> Result<HashMap<String, String>, Error> {
             return Err(Error::new(exception::type_error(), "Metadata keys must be strings or symbols"));
         };
         
-        // Convert value to string
-        let value_str: String = TryConvert::try_convert(value)
-            .map_err(|_| Error::new(exception::type_error(), "Metadata values must be strings"))?;
+        // Convert value to string (handle various Ruby types)
+        let value_str = if let Ok(s) = String::try_convert(value) {
+            s
+        } else if let Ok(i) = Integer::try_convert(value) {
+            i.to_string()
+        } else if let Ok(f) = Float::try_convert(value) {
+            f.to_f64().to_string()
+        } else {
+            // Fallback: use Ruby's to_s method
+            let to_s_method = value.funcall::<_, _, RString>("to_s", ())?;
+            to_s_method.to_string()?
+        };
         
         metadata.insert(key_str, value_str);
         Ok(ForEach::Continue)
