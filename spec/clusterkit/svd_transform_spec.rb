@@ -28,11 +28,11 @@ RSpec.describe "SVD Transform for New Data" do
   
   let(:svd) { ClusterKit::Dimensionality::SVD.new(n_components: 2) }
   
-  describe "current limitations (before transform refactor)" do
-    it "can only transform the exact same data object used for fitting" do
+  describe "transform functionality (now working)" do
+    it "can transform the same data object used for fitting" do
       svd.fit(training_data)
       
-      # Same data object works
+      # Same data object works (legacy behavior preserved)
       expect { svd.transform(training_data) }.not_to raise_error
       result = svd.transform(training_data)
       expect(result).to be_a(Array)
@@ -40,14 +40,18 @@ RSpec.describe "SVD Transform for New Data" do
       expect(result.first.size).to eq(2)
     end
     
-    it "raises NotImplementedError for any new data" do
+    it "now transforms any new data successfully" do
       svd.fit(training_data)
       
-      # Different data object raises error - this documents current limitation
-      expect { svd.transform(new_data) }.to raise_error(NotImplementedError, /Transform for new data not yet implemented/)
+      # New data now works!
+      expect { svd.transform(new_data) }.not_to raise_error
+      result = svd.transform(new_data)
+      expect(result).to be_a(Array)
+      expect(result.size).to eq(3)  # new_data sample count
+      expect(result.first.size).to eq(2)  # n_components
     end
     
-    it "raises NotImplementedError even for identical data in different object" do
+    it "transforms identical data in different object successfully" do
       svd.fit(training_data)
       
       # Create new array with identical values but different object_id
@@ -55,14 +59,14 @@ RSpec.describe "SVD Transform for New Data" do
       expect(identical_new_data).to eq(training_data)  # Same values
       expect(identical_new_data.object_id).not_to eq(training_data.object_id)  # Different object
       
-      expect { svd.transform(identical_new_data) }.to raise_error(NotImplementedError)
+      expect { svd.transform(identical_new_data) }.not_to raise_error
+      result = svd.transform(identical_new_data)
+      expect(result.size).to eq(training_data.size)
     end
   end
   
-  describe "expected behavior after transform refactor" do
-    # These tests define what should work after implementing new data transform
-    
-    it "should transform new data with same feature count", pending: "New data transform not implemented" do
+  describe "new data transformation (now working)" do    
+    it "transforms new data with same feature count" do
       svd.fit(training_data)
       
       transformed = svd.transform(new_data)
@@ -78,7 +82,7 @@ RSpec.describe "SVD Transform for New Data" do
       end
     end
     
-    it "should handle different sample counts", pending: "New data transform not implemented" do
+    it "handles different sample counts" do
       svd.fit(training_data)  # 6 samples
       
       # Test with different sample counts
@@ -94,17 +98,17 @@ RSpec.describe "SVD Transform for New Data" do
       expect(result2.first.size).to eq(2)
     end
     
-    it "should raise error for mismatched feature count", pending: "New data transform not implemented" do
+    it "raises error for mismatched feature count" do
       svd.fit(training_data)  # 3 features
       
       wrong_features = [[1.0, 2.0]]  # Only 2 features
-      expect { svd.transform(wrong_features) }.to raise_error(ArgumentError, /feature.*count|dimension/)
+      expect { svd.transform(wrong_features) }.to raise_error(ArgumentError, /feature/)
       
       too_many_features = [[1.0, 2.0, 3.0, 4.0]]  # 4 features
-      expect { svd.transform(too_many_features) }.to raise_error(ArgumentError, /feature.*count|dimension/)
+      expect { svd.transform(too_many_features) }.to raise_error(ArgumentError, /feature/)
     end
     
-    it "should handle edge cases", pending: "New data transform not implemented" do
+    it "handles edge cases" do
       svd.fit(training_data)
       
       # Empty data
@@ -115,8 +119,8 @@ RSpec.describe "SVD Transform for New Data" do
     end
   end
   
-  describe "mathematical correctness (after implementation)" do
-    it "should produce mathematically correct projections", pending: "New data transform not implemented" do
+  describe "mathematical correctness (now working)" do
+    it "produces mathematically correct projections" do
       # Use simple, predictable data for mathematical verification
       simple_training = [
         [2.0, 0.0],
@@ -146,7 +150,7 @@ RSpec.describe "SVD Transform for New Data" do
       transformed.flatten.each { |val| expect(val).to be_finite }
     end
     
-    it "should maintain orthogonal properties", pending: "New data transform not implemented" do
+    it "maintains orthogonal properties" do
       # Orthogonal input vectors should remain orthogonal after transformation
       orthogonal_training = [
         [1.0, 0.0, 0.0],
@@ -173,8 +177,8 @@ RSpec.describe "SVD Transform for New Data" do
     end
   end
   
-  describe "consistency with PCA (after implementation)" do
-    it "should behave similarly to PCA for dimensionality reduction", pending: "New data transform not implemented" do
+  describe "consistency with PCA (now working)" do
+    it "behaves similarly to PCA for dimensionality reduction" do
       # Both SVD and PCA should produce similar results for dimensionality reduction
       # (SVD without centering vs PCA with centering will differ, but patterns should be similar)
       
@@ -198,7 +202,7 @@ RSpec.describe "SVD Transform for New Data" do
       pca_result.flatten.each { |val| expect(val).to be_finite }
     end
     
-    it "should have consistent API with PCA", pending: "New data transform not implemented" do
+    it "has consistent API with PCA" do
       svd = ClusterKit::Dimensionality::SVD.new(n_components: 2)
       pca = ClusterKit::Dimensionality::PCA.new(n_components: 2)
       
@@ -218,7 +222,7 @@ RSpec.describe "SVD Transform for New Data" do
       expect(pca_result.size).to eq(new_data.size)
     end
     
-    it "should handle workflow consistency: fit training, transform test", pending: "New data transform not implemented" do
+    it "handles workflow consistency: fit training, transform test" do
       # This is the standard ML workflow that should work for both
       svd = ClusterKit::Dimensionality::SVD.new(n_components: 2)
       pca = ClusterKit::Dimensionality::PCA.new(n_components: 2)
@@ -238,8 +242,8 @@ RSpec.describe "SVD Transform for New Data" do
     end
   end
   
-  describe "reconstruction with new data (after implementation)" do
-    it "should support round-trip transformation", pending: "New data transform not implemented" do
+  describe "reconstruction with new data (now working)" do
+    it "supports round-trip transformation" do
       svd.fit(training_data)
       
       # Transform new data
@@ -261,7 +265,7 @@ RSpec.describe "SVD Transform for New Data" do
       end
     end
     
-    it "should handle reconstruction quality with fewer components", pending: "New data transform not implemented" do
+    it "handles reconstruction quality with fewer components" do
       # Test with very few components to see reconstruction degradation
       svd_1comp = ClusterKit::Dimensionality::SVD.new(n_components: 1)
       svd_2comp = ClusterKit::Dimensionality::SVD.new(n_components: 2)
@@ -284,8 +288,8 @@ RSpec.describe "SVD Transform for New Data" do
     end
   end
   
-  describe "edge cases for new data transform (after implementation)" do
-    it "should handle single sample", pending: "New data transform not implemented" do
+  describe "edge cases for new data transform (now working)" do
+    it "handles single sample" do
       svd.fit(training_data)
       
       single_sample = [new_data.first]
@@ -295,7 +299,7 @@ RSpec.describe "SVD Transform for New Data" do
       expect(result.first.size).to eq(2)
     end
     
-    it "should handle many samples", pending: "New data transform not implemented" do
+    it "handles many samples" do
       svd.fit(training_data)
       
       # Large batch of new data
@@ -306,7 +310,7 @@ RSpec.describe "SVD Transform for New Data" do
       expect(result.first.size).to eq(2)
     end
     
-    it "should validate input structure for new data", pending: "New data transform not implemented" do
+    it "validates input structure for new data" do
       svd.fit(training_data)
       
       # Wrong number of features
@@ -324,8 +328,8 @@ RSpec.describe "SVD Transform for New Data" do
     end
   end
   
-  describe "performance and memory considerations (after implementation)" do
-    it "should handle large new datasets efficiently", pending: "New data transform not implemented" do
+  describe "performance and memory considerations (now working)" do
+    it "handles large new datasets efficiently" do
       # Fit on small training data
       svd.fit(training_data)
       

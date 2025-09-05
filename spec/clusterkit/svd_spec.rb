@@ -185,10 +185,14 @@ RSpec.describe ClusterKit::Dimensionality::SVD do
       expect(result.first.size).to eq(2)
     end
     
-    it 'raises NotImplementedError for new data' do
+    it 'now transforms new data successfully' do
       svd.fit(simple_matrix)
       new_data = [[7.0, 8.0]]
-      expect { svd.transform(new_data) }.to raise_error(NotImplementedError, /Transform for new data not yet implemented/)
+      expect { svd.transform(new_data) }.not_to raise_error
+      result = svd.transform(new_data)
+      expect(result).to be_a(Array)
+      expect(result.size).to eq(1)  # 1 sample
+      expect(result.first.size).to eq(2)  # 2 components
     end
   end
   
@@ -380,26 +384,19 @@ RSpec.describe ClusterKit::Dimensionality::SVD do
       ]
     end
     
-    it 'currently raises NotImplementedError for new data (documents limitation)' do
+    it 'now transforms new data successfully (limitation fixed!)' do
       svd = described_class.new(n_components: 2)
       svd.fit(training_data)
       
-      # This test documents the current limitation
-      expect { svd.transform(new_test_data) }.to raise_error(NotImplementedError, /Transform for new data not yet implemented/)
-    end
-    
-    it 'should transform new data after refactor', pending: 'SVD new data transform not implemented' do
-      svd = described_class.new(n_components: 2)
-      svd.fit(training_data)
-      
+      # This now works!
+      expect { svd.transform(new_test_data) }.not_to raise_error
       result = svd.transform(new_test_data)
-      
       expect(result).to be_a(Array)
       expect(result.size).to eq(2)  # 2 samples in new_test_data
       expect(result.first.size).to eq(2)  # 2 components
     end
     
-    it 'should validate feature count matches training data', pending: 'SVD new data transform not implemented' do
+    it 'validates feature count matches training data' do
       svd = described_class.new(n_components: 2)
       svd.fit(training_data)  # 3 features
       
@@ -407,7 +404,7 @@ RSpec.describe ClusterKit::Dimensionality::SVD do
       expect { svd.transform(wrong_features) }.to raise_error(ArgumentError, /feature/)
     end
     
-    it 'should handle empty new data gracefully', pending: 'SVD new data transform not implemented' do
+    it 'handles empty new data gracefully' do
       svd = described_class.new(n_components: 2)
       svd.fit(training_data)
       
