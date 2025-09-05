@@ -31,7 +31,7 @@ module ClusterKit
       
       # Perform SVD on centered data
       # U contains the transformed data, S contains singular values, VT contains components
-      u, s, vt = ClusterKit.svd(centered_data, @n_components, n_iter: 5)
+      u, s, vt = perform_svd(centered_data)
       
       # Store the principal components (eigenvectors)
       @components = vt  # Shape: (n_components, n_features)
@@ -77,7 +77,7 @@ module ClusterKit
       centered_data = center_data(data, @mean)
       
       # Perform SVD on centered data
-      u, s, vt = SVD.randomized_svd(centered_data, @n_components, n_iter: 5)
+      u, s, vt = perform_svd(centered_data)
       
       # Store the principal components (eigenvectors)
       @components = vt
@@ -230,6 +230,12 @@ module ClusterKit
       end
       
       transformed
+    end
+    
+    # Shared SVD computation for both fit and fit_transform
+    # Ensures both methods use identical SVD invocation and parameters
+    def perform_svd(centered_data)
+      SVD.randomized_svd(centered_data, @n_components, n_iter: 5)
     end
   end
 
