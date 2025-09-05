@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../data_validator'
+
 module ClusterKit
   module Clustering
     # HDBSCAN clustering algorithm - matching KMeans API pattern
@@ -128,23 +130,8 @@ module ClusterKit
       private
 
       def validate_data(data)
-        # Exact same validation as KMeans for consistency
-        raise ArgumentError, "Data must be an array" unless data.is_a?(Array)
-        raise ArgumentError, "Data cannot be empty" if data.empty?
-        raise ArgumentError, "Data must be 2D array" unless data.first.is_a?(Array)
-        
-        row_length = data.first.length
-        unless data.all? { |row| row.is_a?(Array) && row.length == row_length }
-          raise ArgumentError, "All rows must have the same length"
-        end
-        
-        data.each_with_index do |row, i|
-          row.each_with_index do |val, j|
-            unless val.is_a?(Numeric)
-              raise ArgumentError, "Element at position [#{i}, #{j}] is not numeric"
-            end
-          end
-        end
+        # Use same validation as KMeans for consistency
+        DataValidator.validate_clustering(data, check_finite: false)
       end
     end
 

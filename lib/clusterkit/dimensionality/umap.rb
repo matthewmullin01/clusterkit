@@ -4,6 +4,7 @@ require 'fileutils'
 require 'json'
 require_relative '../configuration'
 require_relative '../silence'
+require_relative '../data_validator'
 
 module ClusterKit
   module Dimensionality
@@ -224,44 +225,10 @@ module ClusterKit
     end
 
     def validate_input(data, check_min_samples: true)
-      raise ArgumentError, "Input must be an array" unless data.is_a?(Array)
-      raise ArgumentError, "Input cannot be empty" if data.empty?
+      # Use shared validation for common checks
+      DataValidator.validate_standard(data)
 
-      first_row = data.first
-      raise ArgumentError, "Input must be a 2D array (array of arrays)" unless first_row.is_a?(Array)
-
-      row_length = first_row.length
-      min_val = Float::INFINITY
-      max_val = -Float::INFINITY
-
-      # First validate data structure and types
-      data.each_with_index do |row, i|
-        unless row.is_a?(Array)
-          raise ArgumentError, "Row #{i} is not an array"
-        end
-
-        if row.length != row_length
-          raise ArgumentError, "All rows must have the same length (row #{i} has #{row.length} elements, expected #{row_length})"
-        end
-
-        row.each_with_index do |val, j|
-          unless val.is_a?(Numeric)
-            raise ArgumentError, "Element at position [#{i}, #{j}] is not numeric"
-          end
-
-          # Only check for NaN/Infinite on floats
-          if val.is_a?(Float) && (val.nan? || val.infinite?)
-            raise ArgumentError, "Element at position [#{i}, #{j}] is NaN or Infinite"
-          end
-
-          # Track data range
-          val_f = val.to_f
-          min_val = val_f if val_f < min_val
-          max_val = val_f if val_f > max_val
-        end
-      end
-
-      # Check for sufficient data points after validating structure (only for fit operations)
+      # UMAP-specific validations
       if check_min_samples && data.size < 10
         raise ::ClusterKit::InsufficientDataError, <<~MSG
           UMAP requires at least 10 data points, but only #{data.size} provided.
@@ -274,9 +241,9 @@ module ClusterKit
       end
 
       # Check for extreme data ranges that might cause numerical issues
-      data_range = max_val - min_val
-      if data_range > 1000
-        warn "WARNING: Large data range detected (#{data_range.round(2)}). Consider normalizing your data to prevent numerical instability."
+      stats = DataValidator.data_statistics(data)
+      if stats[:data_range] > 1000
+        warn "WARNING: Large data range detected (#{stats[:data_range].round(2)}). Consider normalizing your data to prevent numerical instability."
       end
     end
 

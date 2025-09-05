@@ -2,6 +2,7 @@
 
 require_relative '../clusterkit'
 require_relative 'svd'
+require_relative '../data_validator'
 
 module ClusterKit
   module Dimensionality
@@ -166,17 +167,10 @@ module ClusterKit
     private
 
     def validate_data(data)
-      raise ArgumentError, "Data must be an array" unless data.is_a?(Array)
-      raise ArgumentError, "Data cannot be empty" if data.empty?
-      raise ArgumentError, "Data must be 2D array" unless data.first.is_a?(Array)
+      # Use shared validation for common checks
+      DataValidator.validate_pca(data)
       
-      # Check all rows have same length
-      row_length = data.first.length
-      unless data.all? { |row| row.is_a?(Array) && row.length == row_length }
-        raise ArgumentError, "All rows must have the same length"
-      end
-      
-      # Check we have enough samples for n_components
+      # PCA-specific validations
       if data.size < @n_components
         raise ArgumentError, "n_components (#{@n_components}) cannot be larger than n_samples (#{data.size})"
       end
