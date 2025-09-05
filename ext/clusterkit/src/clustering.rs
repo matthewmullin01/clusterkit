@@ -1,6 +1,8 @@
 use magnus::{function, prelude::*, Error, Value, RArray, Integer, TryConvert};
 use ndarray::{Array1, Array2, ArrayView1, Axis};
 use rand::prelude::*;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 
 mod hdbscan_wrapper;
 
@@ -9,7 +11,7 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     
     clustering_module.define_singleton_method(
         "kmeans_rust",
-        function!(kmeans, 3),
+        function!(kmeans, 4),
     )?;
     
     clustering_module.define_singleton_method(
@@ -25,7 +27,7 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
 
 /// Perform K-means clustering
 /// Returns (labels, centroids, inertia)
-fn kmeans(data: Value, k: usize, max_iter: usize) -> Result<(RArray, RArray, f64), Error> {
+fn kmeans(data: Value, k: usize, max_iter: usize, random_seed: Option<i64>) -> Result<(RArray, RArray, f64), Error> {
     // Convert Ruby array to ndarray
     let rarray: RArray = TryConvert::try_convert(data)?;
     let n_samples = rarray.len();
@@ -59,7 +61,7 @@ fn kmeans(data: Value, k: usize, max_iter: usize) -> Result<(RArray, RArray, f64
     }
     
     // Initialize centroids using K-means++
-    let mut centroids = kmeans_plusplus(&data_array, k)?;
+    let mut centroids = kmeans_plusplus(&data_array, k, random_seed)?;
     let mut labels = vec![0usize; n_samples];
     let mut prev_labels = vec![0usize; n_samples];
     
@@ -202,10 +204,19 @@ fn kmeans_predict(data: Value, centroids: Value) -> Result<RArray, Error> {
 }
 
 /// K-means++ initialization
-fn kmeans_plusplus(data: &Array2<f64>, k: usize) -> Result<Array2<f64>, Error> {
+fn kmeans_plusplus(data: &Array2<f64>, k: usize, random_seed: Option<i64>) -> Result<Array2<f64>, Error> {
     let n_samples = data.nrows();
     let n_features = data.ncols();
-    let mut rng = thread_rng();
+    
+    // Use seeded RNG if seed is provided, otherwise use thread_rng
+    let mut rng: Box<dyn RngCore> = match random_seed {
+        Some(seed) => {
+            // Convert i64 to u64 for seeding (negative numbers wrap around)
+            let seed_u64 = seed as u64;
+            Box::new(StdRng::seed_from_u64(seed_u64))
+        },
+        None => Box::new(thread_rng()),
+    };
     
     let mut centroids = Array2::<f64>::zeros((k, n_features));
     

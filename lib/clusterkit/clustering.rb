@@ -29,11 +29,8 @@ module ClusterKit
       def fit(data)
         validate_data(data)
         
-        # Set random seed if provided
-        srand(@random_seed) if @random_seed
-        
-        # Call Rust implementation
-        @labels, @centroids, @inertia = Clustering.kmeans_rust(data, @k, @max_iter)
+        # Call Rust implementation with optional seed
+        @labels, @centroids, @inertia = Clustering.kmeans_rust(data, @k, @max_iter, @random_seed)
         @fitted = true
         
         self
