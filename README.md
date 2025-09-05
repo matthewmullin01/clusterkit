@@ -329,6 +329,223 @@ probabilities = hdbscan.probabilities      # Cluster membership probabilities
 outlier_scores = hdbscan.outlier_scores   # Outlier scores for each point
 ```
 
+### HNSW - Fast Nearest Neighbor Search
+
+ClusterKit includes HNSW (Hierarchical Navigable Small World) for fast approximate nearest neighbor search, useful for building recommendation systems, similarity search, and as a building block for other algorithms.
+
+Copy and paste this **entire block** into IRB to try HNSW with real embeddings:
+
+```ruby
+require 'clusterkit'
+require 'candle'
+
+# Step 1: Initialize the embedding model
+puts "Loading embedding model..."
+embedding_model = Candle::EmbeddingModel.from_pretrained(
+  'sentence-transformers/all-MiniLM-L6-v2',
+  device: Candle::Device.best
+)
+puts "  ✓ Model loaded: #{embedding_model.model_id}"
+
+# Step 2: Create sample documents for semantic search
+documents = [
+  "The cat sat on the mat",
+  "Dogs are loyal pets that love their owners",
+  "Machine learning algorithms can classify text documents",
+  "Natural language processing helps computers understand human language",
+  "Ruby is a programming language known for its simplicity",
+  "Python is popular for data science and machine learning",
+  "The weather today is sunny and warm",
+  "Climate change affects global weather patterns",
+  "Artificial intelligence is transforming many industries",
+  "Deep learning models require large amounts of training data",
+  "Cats and dogs are common household pets",
+  "Software engineering requires problem-solving skills",
+  "The ocean contains many different species of fish",
+  "Marine biology studies life in aquatic environments",
+  "Cooking requires understanding of ingredients and techniques"
+]
+
+puts "\nGenerating embeddings for #{documents.size} documents..."
+
+# Step 3: Generate embeddings for all documents
+embeddings = documents.map do |doc|
+  embedding_model.embedding(doc).first.to_a
+end
+puts "  ✓ Generated embeddings: #{embeddings.first.count} dimensions each"
+
+# Step 4: Create HNSW index
+puts "\nBuilding HNSW search index..."
+index = ClusterKit::HNSW.new(
+  dim: embeddings.first.count,  # 384 dimensions for all-MiniLM-L6-v2
+  space: :euclidean,
+  m: 16,                       # Good balance of speed vs accuracy
+  ef_construction: 200,        # Build quality
+  max_elements: documents.size,
+  random_seed: 42             # For reproducible results
+)
+
+# Step 5: Add all documents to the index
+documents.each_with_index do |doc, i|
+  index.add_item(
+    embeddings[i],
+    label: "doc_#{i}",
+    metadata: {
+      'text' => doc,
+      'length' => doc.length,
+      'word_count' => doc.split.size
+    }
+  )
+end
+puts "  ✓ Added #{documents.size} documents to index"
+
+# Step 6: Perform semantic searches
+puts "\n" + "="*50
+puts "SEMANTIC SEARCH DEMO"
+puts "="*50
+
+queries = [
+  "pets and animals",
+  "computer programming",
+  "weather and environment"
+]
+
+queries.each do |query|
+  puts "\nQuery: '#{query}'"
+  puts "-" * 30
+
+  # Generate query embedding
+  query_embedding = embedding_model.embedding(query).first.to_a
+
+  # Search for similar documents
+  results = index.search_with_metadata(query_embedding, k: 3)
+
+  results.each_with_index do |result, i|
+    similarity = (1.0 - result[:distance]).round(3)  # Convert distance to similarity
+    text = result[:metadata]['text']
+    puts "  #{i+1}. [#{similarity}] #{text}"
+  end
+end
+
+# Step 7: Demonstrate advanced features
+puts "\n" + "="*50
+puts "ADVANCED FEATURES"
+puts "="*50
+
+# Show search quality adjustment
+puts "\nAdjusting search quality (ef parameter):"
+index.set_ef(50)   # Lower ef = faster but potentially less accurate
+fast_results = index.search(embeddings[0], k: 3)
+puts "  Fast search (ef=50): #{fast_results}"
+
+index.set_ef(200)  # Higher ef = slower but more accurate
+accurate_results = index.search(embeddings[0], k: 3)
+puts "  Accurate search (ef=200): #{accurate_results}"
+
+# Show batch operations
+puts "\nBatch search example:"
+query_embeddings = [embeddings[0], embeddings[5], embeddings[10]]
+batch_results = query_embeddings.map { |emb| index.search(emb, k: 2) }
+puts "  Found #{batch_results.size} result sets"
+
+# Save and load demonstration
+puts "\nSaving and loading index:"
+index.save('demo_index')
+puts "  ✓ Index saved to 'demo_index'"
+
+loaded_index = ClusterKit::HNSW.load('demo_index')
+test_results = loaded_index.search(embeddings[0], k: 2)
+puts "  ✓ Loaded index works: #{test_results}"
+
+puts "\n✅ HNSW demo complete!"
+puts "\nTry your own queries by running:"
+puts "query_embedding = embedding_model.embedding('your search query').first.to_a"
+puts "results = index.search_with_metadata(query_embedding, k: 5)"
+```
+
+#### When to Use HNSW
+
+HNSW is ideal for:
+- **Recommendation Systems**: Find similar items/users quickly
+- **Semantic Search**: Find documents with similar embeddings
+- **Duplicate Detection**: Identify near-duplicate content
+- **Clustering Support**: As a fast neighbor graph for HDBSCAN
+- **Real-time Applications**: When you need sub-millisecond search times
+
+#### Configuration Guidelines
+
+```ruby
+# High recall (>0.95) - Best quality, slower
+ClusterKit::HNSW.new(
+  dim: dim,
+  m: 32,
+  ef_construction: 400
+).tap { |idx| idx.set_ef(100) }
+
+# Balanced (>0.90 recall) - Good quality, fast
+ClusterKit::HNSW.new(
+  dim: dim,
+  m: 16,
+  ef_construction: 200
+).tap { |idx| idx.set_ef(50) }
+
+# Speed optimized (>0.85 recall) - Fastest, acceptable quality
+ClusterKit::HNSW.new(
+  dim: dim,
+  m: 8,
+  ef_construction: 100
+).tap { |idx| idx.set_ef(20) }
+```
+
+#### Important Notes
+
+1. **Memory Usage**: HNSW keeps the entire index in memory. Estimate: `(num_items * (dim * 4 + m * 16))` bytes
+2. **Distance Metrics**: Currently only Euclidean distance is fully supported
+3. **Loading Behavior**: Due to Rust lifetime constraints, loading an index creates a small memory leak (the index metadata persists until program exit). This is typically negligible for most applications.
+4. **Build Time**: Index construction is O(N * log(N)). For large datasets (>1M items), consider building offline
+
+#### Example: Semantic Search System
+
+```ruby
+# Build a simple semantic search system
+documents = load_documents()
+embeddings = generate_embeddings(documents)  # Use red-candle or similar
+
+# Build search index
+search_index = ClusterKit::HNSW.new(
+  dim: embeddings.first.size,
+  m: 16,
+  ef_construction: 200,
+  max_elements: documents.size
+)
+
+# Add all documents
+documents.each_with_index do |doc, i|
+  search_index.add_item(
+    embeddings[i],
+    label: i,
+    metadata: { title: doc[:title], url: doc[:url] }
+  )
+end
+
+# Search function
+def search(query, index, k: 10)
+  query_embedding = generate_embedding(query)
+  results = index.search_with_metadata(query_embedding, k: k)
+
+  results.map do |result|
+    {
+      title: result[:metadata]['title'],
+      url: result[:metadata]['url'],
+      similarity: 1.0 - result[:distance]  # Convert distance to similarity
+    }
+  end
+end
+
+# Save for later use
+search_index.save('document_index')
+```
+
 ### Visualization
 
 ClusterKit includes a built-in visualization tool:
