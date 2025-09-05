@@ -30,12 +30,12 @@ Gem::Specification.new do |spec|
   # Runtime dependencies
   # Numo is optional but recommended for better performance
   # spec.add_dependency "numo-narray", "~> 0.9"
+  spec.add_dependency "rb_sys", "~> 0.9"
 
   # Development dependencies
   spec.add_development_dependency "csv"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rake-compiler", "~> 1.2"
-  spec.add_development_dependency "rb_sys", "~> 0.9"
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "simplecov", "~> 0.22"
   spec.add_development_dependency "yard", "~> 0.9"
