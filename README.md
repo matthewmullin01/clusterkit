@@ -720,7 +720,7 @@ COVERAGE=true bundle exec rspec
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/cpetersen/clusterkit.
+Bug reports and pull requests are welcome on GitHub at https://github.com/scientist-labs/clusterkit.
 
 ## License
 
@@ -735,7 +735,7 @@ If you use ClusterKit in your research, please cite:
   author = {Chris Petersen},
   title = {ClusterKit: High-Performance Clustering and Dimensionality Reduction for Ruby},
   year = {2024},
-  url = {https://github.com/cpetersen/clusterkit}
+  url = {https://github.com/scientist-labs/clusterkit}
 }
 ```
 

@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "High-performance clustering and dimensionality reduction for Ruby"
   spec.description = "A comprehensive clustering toolkit for Ruby, providing UMAP, PCA, K-means, HDBSCAN and more. Built on top of annembed and hdbscan Rust crates for blazing-fast performance."
-  spec.homepage = "https://github.com/cpetersen/clusterkit"
+  spec.homepage = "https://github.com/scientist-labs/clusterkit"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.7.0"
 
