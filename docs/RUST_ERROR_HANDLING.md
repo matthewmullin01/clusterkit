@@ -37,11 +37,11 @@ These use Rust's `assert!` or `panic!` macros and CANNOT be caught. They will cr
 
 | Error | Source | Location | Trigger Condition |
 |-------|--------|----------|-------------------|
-| ~~Box size assertion~~ | ~~annembed~~ | ~~`set_data_box`~~ | **FIXED in cpetersen/annembed:fix-box-size-panic** |
+| ~~Box size assertion~~ | ~~annembed~~ | ~~`set_data_box`~~ | **FIXED in scientist-labs/annembed:fix-box-size-panic** |
 | Array bounds | Various | Index operations | Accessing out-of-bounds indices |
 | Unwrap failures | Various | `.unwrap()` calls | Unwrapping `None` or `Err` |
 
-**Update (2025-08-19):** The box size assertion has been fixed in the `fix-box-size-panic` branch of cpetersen/annembed. It now returns a proper `Result<(), anyhow::Error>` that can be caught and handled gracefully:
+**Update (2025-08-19):** The box size assertion has been fixed in the `fix-box-size-panic` branch of scientist-labs/annembed. It now returns a proper `Result<(), anyhow::Error>` that can be caught and handled gracefully:
 
 ```rust
 // Previously (would panic):
@@ -96,13 +96,13 @@ when /isolated point/i
 
 **Previous Issue:** Would panic and crash the Ruby process
 
-**Current Status:** Fixed in `cpetersen/annembed:fix-box-size-panic` branch
-- Now returns a catchable `anyhow::Error` 
+**Current Status:** Fixed in `scientist-labs/annembed:fix-box-size-panic` branch
+- Now returns a catchable `anyhow::Error`
 - Detects NaN/Infinite values during normalization
 - Handles constant data (max_max = 0) gracefully
 - Extreme value ranges are normalized successfully
 
-**User-visible behavior:** 
+**User-visible behavior:**
 - Previously: Ruby process would crash with assertion failure
 - Now: Raises a catchable Ruby exception with helpful error message
 

@@ -14,7 +14,7 @@ This gem has three main categories of limitations:
 
 **Reason**: UMAP needs sufficient data to construct a meaningful manifold approximation. With fewer than 10 points, the algorithm cannot create a reliable graph structure.
 
-**Workaround**: 
+**Workaround**:
 - Use PCA for datasets with fewer than 10 points
 - The `transform` method can handle smaller datasets once the model is fitted on adequate training data
 
@@ -30,12 +30,12 @@ This gem has three main categories of limitations:
 
 **Previous Issue**: The box_size assertion would panic and crash the Ruby process.
 
-**Current Status**: **FIXED** in `cpetersen/annembed:fix-box-size-panic` branch
+**Current Status**: **FIXED** in `scientist-labs/annembed:fix-box-size-panic` branch
 - The `"assertion failed: (*f).abs() <= box_size"` panic has been converted to a catchable error
 - Extreme value ranges are now handled gracefully through normalization
 - NaN/Infinite values are detected and reported with clear error messages
 
-**Remaining Uncatchable Errors**: 
+**Remaining Uncatchable Errors**:
 - Array bounds violations (accessing out-of-bounds indices)
 - Some `.unwrap()` calls on `None` or `Err` values
 - These are much less common in normal usage
@@ -98,7 +98,7 @@ def safe_umap_transform(data, options = {})
   # Save data to temporary file before processing
   temp_file = "temp_umap_data_#{Time.now.to_i}.json"
   File.write(temp_file, JSON.dump(data))
-  
+
   begin
     umap = ClusterKit::Dimensionality::UMAP.new(**options)
     result = umap.fit_transform(data)
