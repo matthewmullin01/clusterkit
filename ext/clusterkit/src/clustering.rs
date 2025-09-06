@@ -1,8 +1,9 @@
-use magnus::{function, prelude::*, Error, Value, RArray, Integer, TryConvert};
+use magnus::{function, prelude::*, Error, Value, RArray, Integer};
 use ndarray::{Array1, Array2, ArrayView1, Axis};
 use rand::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
+use crate::utils::{ruby_array_to_ndarray2};
 
 mod hdbscan_wrapper;
 
@@ -28,36 +29,15 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
 /// Perform K-means clustering
 /// Returns (labels, centroids, inertia)
 fn kmeans(data: Value, k: usize, max_iter: usize, random_seed: Option<i64>) -> Result<(RArray, RArray, f64), Error> {
-    // Convert Ruby array to ndarray
-    let rarray: RArray = TryConvert::try_convert(data)?;
-    let n_samples = rarray.len();
-    
-    if n_samples == 0 {
-        return Err(Error::new(
-            magnus::exception::arg_error(),
-            "Data cannot be empty",
-        ));
-    }
-    
-    // Get dimensions
-    let first_row: RArray = rarray.entry::<RArray>(0)?;
-    let n_features = first_row.len();
+    // Convert Ruby array to ndarray using shared helper
+    let data_array = ruby_array_to_ndarray2(data)?;
+    let (n_samples, n_features) = data_array.dim();
     
     if k > n_samples {
         return Err(Error::new(
             magnus::exception::arg_error(),
             format!("k ({}) cannot be larger than number of samples ({})", k, n_samples),
         ));
-    }
-    
-    // Convert to ndarray
-    let mut data_array = Array2::<f64>::zeros((n_samples, n_features));
-    for i in 0..n_samples {
-        let row: RArray = rarray.entry(i as isize)?;
-        for j in 0..n_features {
-            let val: f64 = row.entry(j as isize)?;
-            data_array[[i, j]] = val;
-        }
     }
     
     // Initialize centroids using K-means++
@@ -142,43 +122,12 @@ fn kmeans(data: Value, k: usize, max_iter: usize, random_seed: Option<i64>) -> R
 
 /// Predict cluster labels for new data given centroids
 fn kmeans_predict(data: Value, centroids: Value) -> Result<RArray, Error> {
-    // Convert inputs
-    let data_array: RArray = TryConvert::try_convert(data)?;
-    let centroids_array: RArray = TryConvert::try_convert(centroids)?;
+    // Convert inputs using shared helpers
+    let data_matrix = ruby_array_to_ndarray2(data)?;
+    let centroids_matrix = ruby_array_to_ndarray2(centroids)?;
     
-    let n_samples = data_array.len();
-    let k = centroids_array.len();
-    
-    if n_samples == 0 {
-        return Err(Error::new(
-            magnus::exception::arg_error(),
-            "Data cannot be empty",
-        ));
-    }
-    
-    // Get dimensions
-    let first_row: RArray = data_array.entry::<RArray>(0)?;
-    let n_features = first_row.len();
-    
-    // Convert data to ndarray
-    let mut data_matrix = Array2::<f64>::zeros((n_samples, n_features));
-    for i in 0..n_samples {
-        let row: RArray = data_array.entry(i as isize)?;
-        for j in 0..n_features {
-            let val: f64 = row.entry(j as isize)?;
-            data_matrix[[i, j]] = val;
-        }
-    }
-    
-    // Convert centroids to ndarray
-    let mut centroids_matrix = Array2::<f64>::zeros((k, n_features));
-    for i in 0..k {
-        let row: RArray = centroids_array.entry(i as isize)?;
-        for j in 0..n_features {
-            let val: f64 = row.entry(j as isize)?;
-            centroids_matrix[[i, j]] = val;
-        }
-    }
+    let (n_samples, _) = data_matrix.dim();
+    let (_k, _) = centroids_matrix.dim();
     
     // Predict labels
     let ruby = magnus::Ruby::get().unwrap();
