@@ -1,5 +1,6 @@
-use magnus::{function, prelude::*, Error, Value, RArray, RHash, Integer, TryConvert};
+use magnus::{function, prelude::*, Error, Value, RArray, RHash, Integer};
 use hdbscan::{Hdbscan, HdbscanHyperParams};
+use crate::utils::ruby_array_to_vec_vec_f64;
 
 /// Perform HDBSCAN clustering
 /// Returns a hash with labels and basic statistics
@@ -9,32 +10,9 @@ pub fn hdbscan_fit(
     min_cluster_size: usize,
     metric: String,
 ) -> Result<RHash, Error> {
-    // Convert Ruby array to ndarray
-    let rarray: RArray = TryConvert::try_convert(data)?;
-    let n_samples = rarray.len();
-    
-    if n_samples == 0 {
-        return Err(Error::new(
-            magnus::exception::arg_error(),
-            "Data cannot be empty",
-        ));
-    }
-    
-    // Get dimensions
-    let first_row: RArray = rarray.entry::<RArray>(0)?;
-    let n_features = first_row.len();
-    
-    // Convert to Vec<Vec<f64>> format expected by hdbscan crate
-    let mut data_vec: Vec<Vec<f64>> = Vec::with_capacity(n_samples);
-    for i in 0..n_samples {
-        let row: RArray = rarray.entry(i as isize)?;
-        let mut row_vec: Vec<f64> = Vec::with_capacity(n_features);
-        for j in 0..n_features {
-            let val: f64 = row.entry(j as isize)?;
-            row_vec.push(val);
-        }
-        data_vec.push(row_vec);
-    }
+    // Convert Ruby array to Vec<Vec<f64>> using shared helper
+    let data_vec = ruby_array_to_vec_vec_f64(data)?;
+    let n_samples = data_vec.len();
     
     // Note: hdbscan crate doesn't support custom metrics directly
     // We'll use the default Euclidean distance for now

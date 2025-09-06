@@ -1,6 +1,6 @@
-use magnus::{function, prelude::*, Error, Value, RArray, TryConvert};
+use magnus::{function, prelude::*, Error, Value, RArray};
 use annembed::tools::svdapprox::{SvdApprox, RangeApproxMode, RangeRank, MatRepr};
-use ndarray::Array2;
+use crate::utils::ruby_array_to_ndarray2;
 
 pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
     let svd_module = parent.define_module("SVD")?;
@@ -14,36 +14,15 @@ pub fn init(parent: &magnus::RModule) -> Result<(), Error> {
 }
 
 fn randomized_svd(matrix: Value, k: usize, n_iter: usize) -> Result<RArray, Error> {
-    // Convert Ruby array to ndarray
-    let rarray: RArray = TryConvert::try_convert(matrix)?;
-    
-    // Check if it's a 2D array
-    let first_row: RArray = rarray.entry::<RArray>(0)?;
-    let n_rows = rarray.len();
-    let n_cols = first_row.len();
-    
-    if n_rows == 0 || n_cols == 0 {
-        return Err(Error::new(
-            magnus::exception::arg_error(),
-            "Matrix cannot be empty",
-        ));
-    }
+    // Convert Ruby array to ndarray using shared helper
+    let matrix_data = ruby_array_to_ndarray2(matrix)?;
+    let (n_rows, n_cols) = matrix_data.dim();
     
     if k > n_rows.min(n_cols) {
         return Err(Error::new(
             magnus::exception::arg_error(),
             format!("k ({}) cannot be larger than min(rows, cols) = {}", k, n_rows.min(n_cols)),
         ));
-    }
-    
-    // Convert to ndarray Array2
-    let mut matrix_data = Array2::<f64>::zeros((n_rows, n_cols));
-    for i in 0..n_rows {
-        let row: RArray = rarray.entry(i as isize)?;
-        for j in 0..n_cols {
-            let val: f64 = row.entry(j as isize)?;
-            matrix_data[[i, j]] = val;
-        }
     }
     
     // Create MatRepr for the full matrix

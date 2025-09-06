@@ -2,6 +2,7 @@
 
 require_relative '../clusterkit'
 require_relative 'svd'
+require_relative '../data_validator'
 
 module ClusterKit
   module Dimensionality
@@ -30,7 +31,7 @@ module ClusterKit
       
       # Perform SVD on centered data
       # U contains the transformed data, S contains singular values, VT contains components
-      u, s, vt = ClusterKit.svd(centered_data, @n_components, n_iter: 5)
+      u, s, vt = perform_svd(centered_data)
       
       # Store the principal components (eigenvectors)
       @components = vt  # Shape: (n_components, n_features)
@@ -76,7 +77,7 @@ module ClusterKit
       centered_data = center_data(data, @mean)
       
       # Perform SVD on centered data
-      u, s, vt = SVD.randomized_svd(centered_data, @n_components, n_iter: 5)
+      u, s, vt = perform_svd(centered_data)
       
       # Store the principal components (eigenvectors)
       @components = vt
@@ -166,17 +167,10 @@ module ClusterKit
     private
 
     def validate_data(data)
-      raise ArgumentError, "Data must be an array" unless data.is_a?(Array)
-      raise ArgumentError, "Data cannot be empty" if data.empty?
-      raise ArgumentError, "Data must be 2D array" unless data.first.is_a?(Array)
+      # Use shared validation for common checks
+      DataValidator.validate_pca(data)
       
-      # Check all rows have same length
-      row_length = data.first.length
-      unless data.all? { |row| row.is_a?(Array) && row.length == row_length }
-        raise ArgumentError, "All rows must have the same length"
-      end
-      
-      # Check we have enough samples for n_components
+      # PCA-specific validations
       if data.size < @n_components
         raise ArgumentError, "n_components (#{@n_components}) cannot be larger than n_samples (#{data.size})"
       end
@@ -236,6 +230,12 @@ module ClusterKit
       end
       
       transformed
+    end
+    
+    # Shared SVD computation for both fit and fit_transform
+    # Ensures both methods use identical SVD invocation and parameters
+    def perform_svd(centered_data)
+      SVD.randomized_svd(centered_data, @n_components, n_iter: 5)
     end
   end
 

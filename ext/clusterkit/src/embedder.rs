@@ -1,4 +1,4 @@
-use magnus::{Error, RArray, RHash, Value, TryConvert, Integer, Float, Module, Object};
+use magnus::{Error, RArray, RHash, Value, TryConvert, Integer, Module, Object};
 use magnus::value::ReprValue;
 use hnsw_rs::prelude::*;
 use annembed::prelude::*;
@@ -7,6 +7,7 @@ use std::io::{Write, Read};
 use std::cell::RefCell;
 use bincode;
 use serde::{Serialize, Deserialize};
+use crate::utils::ruby_array_to_vec_vec_f32;
 
 // Simple struct to serialize UMAP results
 #[derive(Serialize, Deserialize)]
@@ -124,61 +125,8 @@ impl RustUMAP {
     }
 
     fn fit_transform(&self, data: Value) -> Result<RArray, Error> {
-        // Convert Ruby array to Rust Vec<Vec<f64>>
-        let ruby_array = RArray::try_convert(data)?;
-        let mut rust_data: Vec<Vec<f64>> = Vec::new();
-
-        // Get array length
-        let array_len = ruby_array.len();
-
-        for i in 0..array_len {
-            let row = ruby_array.entry::<Value>(i as isize)?;
-            let row_array = RArray::try_convert(row).map_err(|_| {
-                Error::new(
-                    magnus::exception::type_error(),
-                    "Expected array of arrays (2D array)",
-                )
-            })?;
-
-            let mut rust_row: Vec<f64> = Vec::new();
-            let row_len = row_array.len();
-
-            for j in 0..row_len {
-                let val = row_array.entry::<Value>(j as isize)?;
-                let float_val = if let Ok(f) = Float::try_convert(val) {
-                    f.to_f64()
-                } else if let Ok(i) = Integer::try_convert(val) {
-                    i.to_i64()? as f64
-                } else {
-                    return Err(Error::new(
-                        magnus::exception::type_error(),
-                        "All values must be numeric",
-                    ));
-                };
-                rust_row.push(float_val);
-            }
-
-            if !rust_data.is_empty() && rust_row.len() != rust_data[0].len() {
-                return Err(Error::new(
-                    magnus::exception::arg_error(),
-                    "All rows must have the same length",
-                ));
-            }
-
-            rust_data.push(rust_row);
-        }
-
-        if rust_data.is_empty() {
-            return Err(Error::new(
-                magnus::exception::arg_error(),
-                "Input data cannot be empty",
-            ));
-        }
-
-        // Convert to Vec<Vec<f32>> for HNSW
-        let data_f32: Vec<Vec<f32>> = rust_data.iter()
-            .map(|row| row.iter().map(|&x| x as f32).collect())
-            .collect();
+        // Convert Ruby array to Rust Vec<Vec<f32>> using shared helper
+        let data_f32 = ruby_array_to_vec_vec_f32(data)?;
 
         // Build HNSW graph
         let ef_c = 50;
@@ -331,31 +279,8 @@ impl RustUMAP {
         let training_embeddings_ref = training_embeddings.as_ref()
             .ok_or_else(|| Error::new(magnus::exception::runtime_error(), "No embeddings available."))?;
 
-        // Convert input data to Rust format
-        let ruby_array = RArray::try_convert(data)?;
-        let mut new_data: Vec<Vec<f32>> = Vec::new();
-
-        for i in 0..ruby_array.len() {
-            let row = ruby_array.entry::<Value>(i as isize)?;
-            let row_array = RArray::try_convert(row)?;
-            let mut rust_row: Vec<f32> = Vec::new();
-
-            for j in 0..row_array.len() {
-                let val = row_array.entry::<Value>(j as isize)?;
-                let float_val = if let Ok(f) = Float::try_convert(val) {
-                    f.to_f64() as f32
-                } else if let Ok(i) = Integer::try_convert(val) {
-                    i.to_i64()? as f32
-                } else {
-                    return Err(Error::new(
-                        magnus::exception::type_error(),
-                        "All values must be numeric",
-                    ));
-                };
-                rust_row.push(float_val);
-            }
-            new_data.push(rust_row);
-        }
+        // Convert input data to Rust format using shared helper
+        let new_data = ruby_array_to_vec_vec_f32(data)?;
 
         // For each new point, find k nearest neighbors in training data
         // and average their embeddings (weighted by distance)

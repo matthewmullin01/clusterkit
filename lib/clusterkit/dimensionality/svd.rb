@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../clusterkit'
+require_relative '../data_validator'
 
 module ClusterKit
   module Dimensionality
@@ -8,7 +9,7 @@ module ClusterKit
     # Decomposes a matrix into U, S, V^T components
     class SVD
       attr_reader :n_components, :n_iter, :random_seed
-      attr_reader :u, :s, :vt
+      attr_reader :u, :s, :vt, :n_features
       
       # Initialize a new SVD instance
       # @param n_components [Integer] Number of components to compute
@@ -27,7 +28,8 @@ module ClusterKit
       def fit_transform(data)
         validate_input(data)
         
-        # Store reference to original data for transform detection
+        # Store data characteristics for later transform operations
+        @n_features = data.first.size
         @original_data_id = data.object_id
         
         # Determine n_components if not set
@@ -77,26 +79,21 @@ module ClusterKit
       
       # Transform data using fitted SVD (project onto components)
       # @param data [Array<Array<Numeric>>] Data to transform
-      # @return [Array<Array<Float>>] Transformed data (U * S)
+      # @return [Array<Array<Float>>] Transformed data projected onto SVD components
       def transform(data)
         raise RuntimeError, "Model must be fitted first" unless fitted?
-        validate_input(data)
+        validate_transform_input(data)
         
-        # For SVD, transform typically means projecting onto the components
-        # This is equivalent to data * V (or data * V^T.T)
-        # But for dimensionality reduction, we usually want U * S
-        # which is already computed in fit_transform
-        
-        # If transforming new data, we'd need to project it
-        # For now, return U * S for the fitted data
         if data.object_id == @original_data_id
           # Same data that was fitted - return U * S
           @u.map.with_index do |row, i|
             row.map.with_index { |val, j| val * @s[j] }
           end
         else
-          # New data - would need proper projection
-          raise NotImplementedError, "Transform for new data not yet implemented"
+          # New data - project onto V components: data × V
+          # Since we have V^T, we need to transpose it back to V
+          # V = V^T^T, so we project: data × V^T^T
+          transform_new_data(data)
         end
       end
       
@@ -135,9 +132,43 @@ module ClusterKit
       private
       
       def validate_input(data)
-        raise ArgumentError, "Input must be an array" unless data.is_a?(Array)
-        raise ArgumentError, "Input cannot be empty" if data.empty?
-        raise ArgumentError, "Input must be a 2D array" unless data.first.is_a?(Array)
+        DataValidator.validate_standard(data, check_finite: false)
+      end
+      
+      def validate_transform_input(data)
+        DataValidator.validate_standard(data, check_finite: false)
+        
+        # Check feature count matches training data
+        if data.first.size != @n_features
+          raise ArgumentError, "New data has #{data.first.size} features, but model was fitted with #{@n_features} features"
+        end
+      end
+      
+      # Transform new data by projecting onto V components
+      # Mathematical operation: new_data × V, where V = V^T^T
+      def transform_new_data(data)
+        # V^T is stored as @vt (shape: n_components × n_features)
+        # We need V (shape: n_features × n_components)
+        # V = V^T^T, so we transpose @vt
+        
+        result = []
+        data.each do |sample|
+          # Project sample onto each component (column of V = row of V^T)
+          projected = Array.new(@vt.size, 0.0)
+          
+          @vt.each_with_index do |vt_row, comp_idx|
+            # Dot product: sample · vt_row (this is sample · V[:, comp_idx])
+            dot_product = 0.0
+            sample.each_with_index do |val, feat_idx|
+              dot_product += val * vt_row[feat_idx]
+            end
+            projected[comp_idx] = dot_product
+          end
+          
+          result << projected
+        end
+        
+        result
       end
     end
   end

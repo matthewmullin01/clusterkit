@@ -2,6 +2,7 @@
 
 require_relative 'clusterkit'
 require_relative 'clustering/hdbscan'
+require_relative 'data_validator'
 
 module ClusterKit
   # Module for clustering algorithms
@@ -28,11 +29,8 @@ module ClusterKit
       def fit(data)
         validate_data(data)
         
-        # Set random seed if provided
-        srand(@random_seed) if @random_seed
-        
-        # Call Rust implementation
-        @labels, @centroids, @inertia = Clustering.kmeans_rust(data, @k, @max_iter)
+        # Call Rust implementation with optional seed
+        @labels, @centroids, @inertia = Clustering.kmeans_rust(data, @k, @max_iter, @random_seed)
         @fitted = true
         
         self
@@ -132,24 +130,7 @@ module ClusterKit
       private
 
       def validate_data(data)
-        raise ArgumentError, "Data must be an array" unless data.is_a?(Array)
-        raise ArgumentError, "Data cannot be empty" if data.empty?
-        raise ArgumentError, "Data must be 2D array" unless data.first.is_a?(Array)
-        
-        # Check all rows have same length
-        row_length = data.first.length
-        unless data.all? { |row| row.is_a?(Array) && row.length == row_length }
-          raise ArgumentError, "All rows must have the same length"
-        end
-        
-        # Check all values are numeric
-        data.each_with_index do |row, i|
-          row.each_with_index do |val, j|
-            unless val.is_a?(Numeric)
-              raise ArgumentError, "Element at position [#{i}, #{j}] is not numeric"
-            end
-          end
-        end
+        DataValidator.validate_clustering(data, check_finite: false)
       end
     end
 
